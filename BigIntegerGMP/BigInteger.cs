@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using BigIntegerGMP.Utils;
 using static Math.Gmp.Native.gmp_lib;
+using System.Globalization;
+using System.Numerics;
 
 namespace BigIntegerGMP
 {
@@ -66,8 +68,14 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         public BigInteger(int value)
         {
-            _value = new mpz_t();
-            mpz_init_set_si(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_si(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
@@ -75,24 +83,42 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         public BigInteger(uint value)
         {
-            _value = new mpz_t();
-            mpz_init_set_ui(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_ui(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(long value) {
-            _value = new mpz_t();
-            mpz_init_set_d(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_d(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(ulong value) {
-            _value = new mpz_t();
-            mpz_init_set_d(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_d(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
@@ -100,17 +126,78 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         public BigInteger(double value)
         {
-            _value = new mpz_t();
-            mpz_init_set_d(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_d(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(float value) {
-            _value = new mpz_t();
-            mpz_init_set_d(_value, value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set_d(_value, value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        public BigInteger(decimal value)
+        {
+            try
+            {
+                // Handle zero case
+                if (value == 0m)
+                {
+                    _value = new mpz_t();
+                    mpz_init_set_ui(_value, 0);
+                    return;
+                }
+
+                // Handle sign
+                var isNegative = value < 0;
+                value = System.Math.Abs(value);
+
+                // Extract integer part and fractional part
+                var bits = decimal.GetBits(value);
+                var low = bits[0] & 0xFFFFFFFFL;
+                var mid = bits[1] & 0xFFFFFFFFL;
+                var high = bits[2] & 0xFFFFFFFFL;
+                var scale = (bits[3] >> 16) & 0x7F;
+
+                // Create a BigInteger from the integer part
+                var integerPart = new BigInteger((ulong)(high << 32 | mid << 16 | low));
+
+                // Handle scaling (fractional part)
+                if (scale > 0)
+                {
+                    // Convert the fractional part to an integer
+                    var fractionalPart = integerPart;
+                    var scaleMultiplier = BigInteger.Pow(10, scale);
+                    integerPart /= scaleMultiplier;
+                }
+
+                // Set the final value
+                _value = integerPart._value;
+
+                if (isNegative) mpz_neg(_value, _value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value from base 16.
         /// </summary>
@@ -123,17 +210,24 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="format"></param>
         public BigInteger(string value, BaseFormat format) {
-            _value = new mpz_t();
-            if(format == BaseFormat.Base64)
+            try
             {
-                var byteArray = Convert.FromBase64String(value);
-                var ptr = Marshal.AllocHGlobal(byteArray.Length);
-                Marshal.Copy(byteArray, 0, ptr, byteArray.Length);
-                mpz_import(_value, (size_t)byteArray.Length, 1, 1, 0, 0, new void_ptr(ptr));
-                Marshal.FreeHGlobal(ptr);
+                _value = new mpz_t();
+                if (format == BaseFormat.Base64)
+                {
+                    var byteArray = Convert.FromBase64String(value);
+                    var ptr = Marshal.AllocHGlobal(byteArray.Length);
+                    Marshal.Copy(byteArray, 0, ptr, byteArray.Length);
+                    mpz_import(_value, (size_t)byteArray.Length, 1, 1, 0, 0, new void_ptr(ptr));
+                    Marshal.FreeHGlobal(ptr);
+                }
+                else
+                    mpz_init_set_str(_value, new char_ptr(value), (int)format);
             }
-            else
-                mpz_init_set_str(_value, new char_ptr(value), (int)format);
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
@@ -149,12 +243,18 @@ namespace BigIntegerGMP
         /// <param name="isNegative"></param>
         /// <param name="isLittleEndian"></param>
         public BigInteger(byte[] value, int valueLength, bool isNegative, bool isLittleEndian) {
-            _value = new mpz_t();
-            mpz_init(_value);
-            var ptr = Marshal.AllocHGlobal(valueLength);
-            Marshal.Copy(value, 0, ptr, valueLength);
-            mpz_import(_value, (size_t)valueLength, isLittleEndian ? 1 : 0, 1, 0, 0, new void_ptr(ptr));
-            Marshal.FreeHGlobal(ptr);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init(_value);
+                var ptr = Marshal.AllocHGlobal(valueLength);
+                Marshal.Copy(value, 0, ptr, valueLength);
+                mpz_import(_value, (size_t)valueLength, isLittleEndian ? 1 : 0, 1, 0, 0, new void_ptr(ptr));
+                Marshal.FreeHGlobal(ptr);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value, length, and endianness.
@@ -170,32 +270,50 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(BigInteger value) {
-            _value = new mpz_t();
-            mpz_init_set(_value, value._value);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init_set(_value, value._value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(uint[] value) {
-            _value = new mpz_t();
-            mpz_init(_value);
-            var ptr = Marshal.AllocHGlobal(value.Length * sizeof(uint));
-            Helpers.CopyEx(value, 0, ptr, value.Length);
-            mpz_import(_value, (size_t)(value.Length * sizeof(uint)), 1, 4, 0, 0, new void_ptr(ptr));
-            Marshal.FreeHGlobal(ptr);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init(_value);
+                var ptr = Marshal.AllocHGlobal(value.Length * sizeof(uint));
+                Helpers.CopyEx(value, 0, ptr, value.Length);
+                mpz_import(_value, (size_t)(value.Length * sizeof(uint)), 1, 4, 0, 0, new void_ptr(ptr));
+                Marshal.FreeHGlobal(ptr);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         public BigInteger(int[] value) {
-            _value = new mpz_t();
-            mpz_init(_value);
-            var ptr = Marshal.AllocHGlobal(value.Length * sizeof(int));
-            Marshal.Copy(value, 0, ptr, value.Length);
-            mpz_import(_value, (size_t)(value.Length * sizeof(int)), 1, 4, 0, 0, new void_ptr(ptr));
-            Marshal.FreeHGlobal(ptr);
+            try
+            {
+                _value = new mpz_t();
+                mpz_init(_value);
+                var ptr = Marshal.AllocHGlobal(value.Length * sizeof(int));
+                Marshal.Copy(value, 0, ptr, value.Length);
+                mpz_import(_value, (size_t)(value.Length * sizeof(int)), 1, 4, 0, 0, new void_ptr(ptr));
+                Marshal.FreeHGlobal(ptr);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
         }
 
         #endregion
@@ -206,146 +324,304 @@ namespace BigIntegerGMP
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
-        public static implicit operator BigInteger(byte value) => new BigInteger(value);
+        public static implicit operator BigInteger(byte value)
+        {
+            try
+            {
+                return new(value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         [CLSCompliant(false)]
-        public static implicit operator BigInteger(sbyte value) => new BigInteger(value);
+        public static implicit operator BigInteger(sbyte value)
+        {
+            try
+            {
+                return new(value);
+            }catch(Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
-        public static implicit operator BigInteger(short value) => new BigInteger(value);
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
-        /// </summary>
-        /// <param name="value"></param>
-        [CLSCompliant(false)]
-        public static implicit operator BigInteger(ushort value) => new BigInteger(value);
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
-        /// </summary>
-        /// <param name="value"></param>
-        public static implicit operator BigInteger(int value) => new BigInteger(value);
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
-        /// </summary>
-        /// <param name="value"></param>
-        [CLSCompliant(false)]
-        public static implicit operator BigInteger(uint value) => new BigInteger(value);
-
-        /// <summary>
-        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
-        /// </summary>
-        /// <param name="value"></param>
-        public static implicit operator BigInteger(long value) => new BigInteger(value);
+        public static implicit operator BigInteger(short value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
         [CLSCompliant(false)]
-        public static implicit operator BigInteger(ulong value) => new BigInteger(value);
+        public static implicit operator BigInteger(ushort value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator BigInteger(float value) => new BigInteger(value);
+        public static implicit operator BigInteger(int value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator BigInteger(double value) => new BigInteger(value);
+        [CLSCompliant(false)]
+        public static implicit operator BigInteger(uint value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        public static implicit operator BigInteger(long value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        [CLSCompliant(false)]
+        public static implicit operator BigInteger(ulong value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator BigInteger(float value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator BigInteger(decimal value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value.
+        /// </summary>
+        /// <param name="value"></param>
+        public static explicit operator BigInteger(double value)
+        {
+            try
+            {
+                return new(value);
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
 
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to an integer.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator int(BigInteger value)
+        public static explicit operator int(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
 
-            var longVal = mpz_get_si(value._value);
-            if (longVal > int.MaxValue || longVal < int.MinValue)
-                throw new OverflowException("Value was either too large or too small for an Int32.");
-            return longVal;
+            try
+            {
+                var longVal = mpz_get_si(value._value);
+                return longVal;
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for an Int32.", ex);
+            }
         }
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to an unsigned integer.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator uint(BigInteger value)
+        public static explicit operator uint(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-
-            var ulongVal = mpz_get_ui(value._value);
-            if (ulongVal > uint.MaxValue)
-                throw new OverflowException("Value was too large for a UInt32.");
-            return ulongVal;
+            try
+            {
+                var ulongVal = mpz_get_ui(value._value);
+                return ulongVal;
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for an UInt32.", ex);
+            }
         }
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to a long integer.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator long(BigInteger value)
+        public static explicit operator long(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-
-            return mpz_get_si(value._value);
+            try
+            {
+                return mpz_get_si(value._value);
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for an Int64.", ex);
+            }
         }
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to an unsigned long integer.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator ulong(BigInteger value)
+        public static explicit operator ulong(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-
-            return mpz_get_ui(value._value);
+            try
+            {
+                return mpz_get_ui(value._value);
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for an UInt64.", ex);
+            }
         }
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to a float.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator float(BigInteger value)
+        public static explicit operator float(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
-
-            return (float)mpz_get_d(value._value);
+            try
+            {
+                return (float)mpz_get_d(value._value);
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for a Single.", ex);
+            }
         }
         /// <summary>
         /// Converts the specified <see cref="BigInteger"/> object to a double.
         /// </summary>
         /// <param name="value"></param>
-        public static explicit operator double(BigInteger value)
+        public static explicit operator double(BigInteger? value)
         {
             // Ensure the input is not null
             if (value == null)
                 throw new ArgumentNullException(nameof(value));
+            try
+            {
+                return mpz_get_d(value._value);
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for a Double.", ex);
+            }
+        }
+        /// <summary>
+        /// Converts the specified <see cref="BigInteger"/> object to a decimal.
+        /// </summary>
+        /// <param name="value"></param>
 
-            return mpz_get_d(value._value);
+        public static explicit operator decimal(BigInteger? value)
+        {
+            // Ensure the input is not null
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
+            try
+            {
+                return value.ToDecimal();
+            }catch(Exception ex)
+            {
+                throw new OverflowException("Value was either too large or too small for a Decimal.", ex);
+            }
         }
 
-        public static bool operator ==(BigInteger left, BigInteger right)
+        public static bool operator ==(BigInteger? left, BigInteger? right)
         {
             if(left is null || right is null)
                 return false;
@@ -353,163 +629,256 @@ namespace BigIntegerGMP
             return mpz_cmp(left._value, right._value) == 0;
         }
 
-        public static bool operator !=(BigInteger left, BigInteger right) => mpz_cmp(left._value, right._value) != 0;
-
-        public static bool operator ==(BigInteger left, int right) => mpz_cmp_si(left._value, right) == 0;
-
-        public static bool operator !=(BigInteger left, int right) => mpz_cmp_si(left._value, right) != 0;
-
-        public static bool operator <(BigInteger left, BigInteger right) => mpz_cmp(left._value, right._value) < 0;
-
-        public static bool operator >(BigInteger left, BigInteger right) => mpz_cmp(left._value, right._value) > 0;
-
-        public static bool operator <(BigInteger left, int right) => mpz_cmp_si(left._value, right) < 0;
-
-        public static bool operator >(BigInteger left, int right) => mpz_cmp_si(left._value, right) > 0;
-
-        public static bool operator <=(BigInteger left, BigInteger right) => mpz_cmp(left._value, right._value) <= 0;
-
-        public static bool operator <=(BigInteger left, int right) => mpz_cmp_si(left._value, right) <= 0;
-
-        public static bool operator >=(BigInteger left, BigInteger right) => mpz_cmp(left._value, right._value) >= 0;
-
-        public static bool operator >=(BigInteger left, int right) => mpz_cmp_si(left._value, right) >= 0;
-
-        public static BigInteger operator <<(BigInteger left, BigInteger right)
+        public static bool operator !=(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return false;
+            return mpz_cmp(left._value, right._value) != 0;
+        }
+
+        public static bool operator ==(BigInteger? left, int right)
+        {
+            if (left is null)
+                return false;
+            return mpz_cmp_si(left._value, right) == 0;
+        }
+
+        public static bool operator !=(BigInteger left, int right)
+        {
+            return mpz_cmp_si(left._value, right) != 0;
+        }
+
+        public static bool operator <(BigInteger? left, BigInteger? right)
+        {
+            if (left is null || right is null)
+                return false;
+            return mpz_cmp(left._value, right._value) < 0;
+        }
+
+        public static bool operator >(BigInteger? left, BigInteger? right)
+        {
+            if (left is null || right is null)
+                return false;
+            return mpz_cmp(left._value, right._value) > 0;
+        }
+
+        public static bool operator <(BigInteger? left, int right)
+        {
+            if (left is null)
+                return false;
+            return mpz_cmp_si(left._value, right) < 0;
+        }
+
+        public static bool operator >(BigInteger? left, int right)
+        {
+            if (left is null)
+                return false;
+            return mpz_cmp_si(left._value, right) > 0;
+        }
+
+        public static bool operator <=(BigInteger? left, BigInteger? right)
+        {
+            if (left is null || right is null)
+                return false;
+            return mpz_cmp(left._value, right._value) <= 0;
+        }
+
+        public static bool operator <=(BigInteger? left, int right)
+        {
+            if (left is null)
+                return false;
+            return mpz_cmp_si(left._value, right) <= 0;
+        }
+
+        public static bool operator >=(BigInteger? left, BigInteger? right)
+        {
+            if (left is null || right is null)
+                return false;
+            return mpz_cmp(left._value, right._value) >= 0;
+        }
+
+        public static bool operator >=(BigInteger? left, int right)
+        {
+            if (left is null)
+                return false;
+            return mpz_cmp_si(left._value, right) >= 0;
+        }
+
+        public static BigInteger? operator <<(BigInteger? left, BigInteger? right)
+        {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_mul_2exp(result._value, left._value, mpz_get_ui(right._value));
             return result;
         }
 
-        public static BigInteger operator >>(BigInteger left, BigInteger right)
+        public static BigInteger? operator >>(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_fdiv_q_2exp(result._value, left._value, mpz_get_ui(right._value));
             return result;
         }
 
-        public static BigInteger operator <<(BigInteger left, int right)
+        public static BigInteger? operator <<(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_mul_2exp(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator >>(BigInteger left, int right)
+        public static BigInteger? operator >>(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_fdiv_q_2exp(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator +(BigInteger left, BigInteger right)
+        public static BigInteger? operator +(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_add(result._value, left._value, result._value);
             return result;
         }
 
-        public static BigInteger operator +(BigInteger left, int right)
+        public static BigInteger? operator +(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_add_ui(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator +(BigInteger value)
+        public static BigInteger? operator +(BigInteger? value)
         {
+            if (value is null)
+                return null;
             var result = new BigInteger();
             mpz_add(result._value, value._value, result._value);
             return result;
         }
 
-        public static BigInteger operator ++(BigInteger value)
+        public static BigInteger? operator ++(BigInteger? value)
         {
+            if (value is null)
+                return null;
             var result = new BigInteger();
             mpz_add_ui(result._value, value._value, 1);
             return result;
         }
 
-        public static BigInteger operator --(BigInteger value)
+        public static BigInteger? operator --(BigInteger? value)
         {
+            if (value is null)
+                return null;
             var result = new BigInteger();
             mpz_sub_ui(result._value, value._value, 1);
             return result;
         }
 
-        public static BigInteger operator -(BigInteger left, BigInteger right)
+        public static BigInteger? operator -(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_sub(result._value, left._value, result._value);
             return result;
         }
 
-        public static BigInteger operator -(BigInteger left, int right)
+        public static BigInteger? operator -(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_sub_ui(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator -(BigInteger value)
+        public static BigInteger? operator -(BigInteger? value)
         {
+            if (value is null)
+                return null;
             var result = new BigInteger();
             mpz_neg(result._value, value._value);
             return result;
         }
 
-        public static BigInteger operator *(BigInteger left, BigInteger right)
+        public static BigInteger? operator *(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_mul(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator *(BigInteger left, int right)
+        public static BigInteger? operator *(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_mul_si(result._value, left._value, right);
             return result;
         }
 
-        public static BigInteger operator /(BigInteger left, BigInteger right)
+        public static BigInteger? operator /(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_fdiv_q(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator /(BigInteger left, int right)
+        public static BigInteger? operator /(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_fdiv_q_ui(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator %(BigInteger left, BigInteger right)
+        public static BigInteger? operator %(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_mod(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator %(BigInteger left, int right)
+        public static BigInteger? operator %(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var result = new BigInteger();
             mpz_mod_ui(result._value, left._value, (uint)right);
             return result;
         }
 
-        public static BigInteger operator &(BigInteger left, BigInteger right)
+        public static BigInteger? operator &(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_and(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator &(BigInteger left, int right)
+        public static BigInteger? operator &(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var _right = new BigInteger();
             var result = new BigInteger();
 
@@ -518,22 +887,28 @@ namespace BigIntegerGMP
             return result;
         }
 
-        public static BigInteger operator ~(BigInteger value)
+        public static BigInteger? operator ~(BigInteger? value)
         {
+            if (value is null)
+                return null;
             var result = new BigInteger();
             mpz_com(result._value, value._value);
             return result;
         }
 
-        public static BigInteger operator |(BigInteger left, BigInteger right)
+        public static BigInteger? operator |(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_ior(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator |(BigInteger left, int right)
+        public static BigInteger? operator |(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var _right = new BigInteger();
             var result = new BigInteger();
 
@@ -542,15 +917,19 @@ namespace BigIntegerGMP
             return result;
         }
 
-        public static BigInteger operator ^(BigInteger left, BigInteger right)
+        public static BigInteger? operator ^(BigInteger? left, BigInteger? right)
         {
+            if (left is null || right is null)
+                return null;
             var result = new BigInteger();
             mpz_xor(result._value, left._value, right._value);
             return result;
         }
 
-        public static BigInteger operator ^(BigInteger left, int right)
+        public static BigInteger? operator ^(BigInteger? left, int right)
         {
+            if (left is null)
+                return null;
             var _right = new BigInteger();
             var result = new BigInteger();
 
@@ -579,7 +958,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Add(BigInteger left, BigInteger right) => left + right;
+        public static BigInteger Add(BigInteger left, BigInteger right)
+        {
+            return left + right;
+        }
 
         /// <summary>
         /// Returns the sum of the specified <see cref="BigInteger"/> object and integer.
@@ -587,7 +969,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Add(BigInteger left, int right) => left + right;
+        public static BigInteger Add(BigInteger left, int right)
+        {
+            return left + right;
+        }
 
         /// <summary>
         /// Returns the difference of the specified <see cref="BigInteger"/> objects.
@@ -595,7 +980,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Subtract(BigInteger left, BigInteger right) => left - right;
+        public static BigInteger Subtract(BigInteger left, BigInteger right)
+        {
+            return left - right;
+        }
 
         /// <summary>
         /// Returns the difference of the specified <see cref="BigInteger"/> object and integer.
@@ -603,7 +991,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Subtract(BigInteger left, int right) => left - right;
+        public static BigInteger Subtract(BigInteger left, int right)
+        {
+            return left - right;
+        }
 
         /// <summary>
         /// Returns the product of the specified <see cref="BigInteger"/> objects.
@@ -611,7 +1002,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Multiply(BigInteger left, BigInteger right) => left * right;
+        public static BigInteger Multiply(BigInteger left, BigInteger right)
+        {
+            return left * right;
+        }
 
         /// <summary>
         /// Returns the product of the specified <see cref="BigInteger"/> object and integer.
@@ -619,7 +1013,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Multiply(BigInteger left, int right) => left * right;
+        public static BigInteger Multiply(BigInteger left, int right)
+        {
+            return left * right;
+        }
 
         /// <summary>
         /// Returns the quotient of the specified <see cref="BigInteger"/> objects.
@@ -627,7 +1024,10 @@ namespace BigIntegerGMP
         /// <param name="dividend"></param>
         /// <param name="divisor"></param>
         /// <returns></returns>
-        public static BigInteger Divide(BigInteger dividend, BigInteger divisor) => dividend / divisor;
+        public static BigInteger Divide(BigInteger dividend, BigInteger divisor)
+        {
+            return dividend / divisor;
+        }
 
         /// <summary>
         /// Returns the quotient of the specified <see cref="BigInteger"/> object and integer.
@@ -635,7 +1035,10 @@ namespace BigIntegerGMP
         /// <param name="dividend"></param>
         /// <param name="divisor"></param>
         /// <returns></returns>
-        public static BigInteger Divide(BigInteger dividend, int divisor) => dividend / divisor;
+        public static BigInteger Divide(BigInteger dividend, int divisor)
+        {
+            return dividend / divisor;
+        }
 
         /// <summary>
         /// Returns the remainder of the specified <see cref="BigInteger"/> objects.
@@ -643,7 +1046,10 @@ namespace BigIntegerGMP
         /// <param name="dividend"></param>
         /// <param name="divisor"></param>
         /// <returns></returns>
-        public static BigInteger Remainder(BigInteger dividend, BigInteger divisor) => dividend % divisor;
+        public static BigInteger Remainder(BigInteger dividend, BigInteger divisor)
+        {
+            return dividend % divisor;
+        }
 
         /// <summary>
         /// Returns the remainder of the specified <see cref="BigInteger"/> object and integer.
@@ -651,7 +1057,10 @@ namespace BigIntegerGMP
         /// <param name="dividend"></param>
         /// <param name="divisor"></param>
         /// <returns></returns>
-        public static BigInteger Remainder(BigInteger dividend, int divisor) => dividend % divisor;
+        public static BigInteger Remainder(BigInteger dividend, int divisor)
+        {
+            return dividend % divisor;
+        }
 
         /// <summary>
         /// Returns the quotient of the specified <see cref="BigInteger"/> objects.
@@ -686,14 +1095,20 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static BigInteger Negate(BigInteger value) => -value;
+        public static BigInteger Negate(BigInteger value)
+        {
+            return -value;
+        }
 
         /// <summary>
         /// Returns the bitwise complement of the specified <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static BigInteger Not(BigInteger value) => ~value;
+        public static BigInteger Not(BigInteger value)
+        {
+            return ~value;
+        }
 
         /// <summary>
         /// Returns the and of the specified <see cref="BigInteger"/> objects.
@@ -701,7 +1116,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger And(BigInteger left, BigInteger right) => left & right;
+        public static BigInteger And(BigInteger left, BigInteger right)
+        {
+            return left & right;
+        }
 
         /// <summary>
         /// Returns the and of the specified <see cref="BigInteger"/> object and integer.
@@ -709,7 +1127,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger And(BigInteger left, int right) => left & right;
+        public static BigInteger And(BigInteger left, int right)
+        {
+            return left & right;
+        }
 
         /// <summary>
         /// Returns the or of the specified <see cref="BigInteger"/> objects.
@@ -717,7 +1138,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Or(BigInteger left, BigInteger right) => left | right;
+        public static BigInteger Or(BigInteger left, BigInteger right)
+        {
+            return left | right;
+        }
 
         /// <summary>
         /// Returns the or of the specified <see cref="BigInteger"/> object and integer.
@@ -725,7 +1149,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Or(BigInteger left, int right) => left | right;
+        public static BigInteger Or(BigInteger left, int right)
+        {
+            return left | right;
+        }
 
         /// <summary>
         /// Returns the xor of the specified <see cref="BigInteger"/> objects.
@@ -733,7 +1160,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Xor(BigInteger left, BigInteger right) => left ^ right;
+        public static BigInteger Xor(BigInteger left, BigInteger right)
+        {
+            return left ^ right;
+        }
 
         /// <summary>
         /// Returns the xor of the specified <see cref="BigInteger"/> object and integer.
@@ -741,7 +1171,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Xor(BigInteger left, int right) => left ^ right;
+        public static BigInteger Xor(BigInteger left, int right)
+        {
+            return left ^ right;
+        }
 
         /// <summary>
         /// Returns the left-shifted <see cref="BigInteger"/> object.
@@ -749,7 +1182,10 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="shift"></param>
         /// <returns></returns>
-        public static BigInteger LeftShift(BigInteger value, int shift) => value << shift;
+        public static BigInteger LeftShift(BigInteger value, int shift)
+        {
+            return value << shift;
+        }
 
         /// <summary>
         /// Returns the right-shifted <see cref="BigInteger"/> object.
@@ -757,7 +1193,10 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="shift"></param>
         /// <returns></returns>
-        public static BigInteger RightShift(BigInteger value, int shift) => value >> shift;
+        public static BigInteger RightShift(BigInteger value, int shift)
+        {
+            return value >> shift;
+        }
 
         /// <summary>
         /// Returns the modulus of the specified <see cref="BigInteger"/> objects.
@@ -765,7 +1204,10 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="modulus"></param>
         /// <returns></returns>
-        public static BigInteger Mod(BigInteger value, BigInteger modulus) => value % modulus;
+        public static BigInteger Mod(BigInteger value, BigInteger modulus)
+        {
+            return value % modulus;
+        }
 
         /// <summary>
         /// Returns the modulus of the specified <see cref="BigInteger"/> object and integer.
@@ -773,14 +1215,20 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="modulus"></param>
         /// <returns></returns>
-        public static BigInteger Mod(BigInteger value, int modulus) => value % modulus;
+        public static BigInteger Mod(BigInteger value, int modulus)
+        {
+            return value % modulus;
+        }
 
         /// <summary>
         /// Returns the absolute value of the specified <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static double Log(BigInteger value) => Log(value, System.Math.E);
+        public static double Log(BigInteger value)
+        {
+            return Log(value, System.Math.E);
+        }
 
         /// <summary>
         /// Returns the logarithm of the specified <see cref="BigInteger"/> object with the specified base.
@@ -798,10 +1246,10 @@ namespace BigIntegerGMP
             }
 
             // Convert the BigInteger (mpz_t) to a double
-            double doubleValue = mpz_get_d(value._value);
+            var doubleValue = mpz_get_d(value._value);
 
             // Calculate the logarithm using .NET's Math.Log function
-            double logResult = System.Math.Log(doubleValue);
+            var logResult = System.Math.Log(doubleValue);
 
             // Adjust for the base
             if (baseValue != System.Math.E)
@@ -816,7 +1264,10 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static double Log10(BigInteger value) => Log(value, 10);
+        public static double Log10(BigInteger value)
+        {
+            return Log(value, 10);
+        }
 
         /// <summary>
         /// Returns the greatest common divisor of the specified <see cref="BigInteger"/> objects.
@@ -848,7 +1299,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Max(BigInteger left, BigInteger right) => left >= right ? left : right;
+        public static BigInteger Max(BigInteger left, BigInteger right)
+        {
+            return left >= right ? left : right;
+        }
 
         /// <summary>
         /// Returns the minimum of the specified <see cref="BigInteger"/> objects.
@@ -856,7 +1310,10 @@ namespace BigIntegerGMP
         /// <param name="left"></param>
         /// <param name="right"></param>
         /// <returns></returns>
-        public static BigInteger Min(BigInteger left, BigInteger right) => left <= right ? left : right;
+        public static BigInteger Min(BigInteger left, BigInteger right)
+        {
+            return left <= right ? left : right;
+        }
 
         /// <summary>
         /// Returns the modular exponentiation of the specified <see cref="BigInteger"/> object with the specified exponent and modulus.
@@ -878,7 +1335,10 @@ namespace BigIntegerGMP
         /// <param name="exponent"></param>
         /// <param name="modulus"></param>
         /// <returns></returns>
-        public static BigInteger PowMod(BigInteger baseValue, BigInteger exponent, BigInteger modulus) => ModPow(baseValue, exponent, modulus);
+        public static BigInteger PowMod(BigInteger baseValue, BigInteger exponent, BigInteger modulus)
+        {
+            return ModPow(baseValue, exponent, modulus);
+        }
 
         /// <summary>
         /// Returns the least common multiple of the specified <see cref="BigInteger"/> objects.
@@ -971,7 +1431,10 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="certainty"></param>
         /// <returns></returns>
-        public static bool IsProbablePrime(BigInteger value, int certainty = 10) => mpz_probab_prime_p(value._value, certainty) != 0;
+        public static bool IsProbablePrime(BigInteger value, int certainty = 10)
+        {
+            return mpz_probab_prime_p(value._value, certainty) != 0;
+        }
 
         /// <summary>
         /// Checks if the specified string value is a valid <see cref="BigInteger"/> object with the specified base format.
@@ -979,28 +1442,40 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="format"></param>
         /// <returns></returns>
-        public static bool IsValid(string value, BaseFormat format) => mpz_set_str(new mpz_t(), new char_ptr(value), (int)format) == 0;
+        public static bool IsValid(string value, BaseFormat format)
+        {
+            return mpz_set_str(new mpz_t(), new char_ptr(value), (int)format) == 0;
+        }
 
         /// <summary>
         /// Checks if the specified <see cref="BigInteger"/> object is an even number.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static bool IsEven(BigInteger value) => mpz_tstbit(value._value, 0) == 0;
+        public static bool IsEven(BigInteger value)
+        {
+            return mpz_tstbit(value._value, 0) == 0;
+        }
 
         /// <summary>
         /// Checks if the specified <see cref="BigInteger"/> object is an odd number.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static bool IsOdd(BigInteger value) => !IsEven(value);
+        public static bool IsOdd(BigInteger value)
+        {
+            return !IsEven(value);
+        }
 
         /// <summary>
         /// Checks if the specified <see cref="BigInteger"/> object is a power of two.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static bool IsPowerOfTwo(BigInteger value) => mpz_popcount(value._value) == 1;
+        public static bool IsPowerOfTwo(BigInteger value)
+        {
+            return mpz_popcount(value._value) == 1;
+        }
 
         /// <summary>
         /// Returns the random <see cref="BigInteger"/> object with the specified bit length.
@@ -1029,7 +1504,10 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="shift"></param>
         /// <returns></returns>
-        public static BigInteger ShiftLeft(BigInteger value, int shift) => value << shift;
+        public static BigInteger ShiftLeft(BigInteger value, int shift)
+        {
+            return value << shift;
+        }
 
         /// <summary>
         /// Returns the right-shifted <see cref="BigInteger"/> object.
@@ -1037,14 +1515,20 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <param name="shift"></param>
         /// <returns></returns>
-        public static BigInteger ShiftRight(BigInteger value, int shift) => value >> shift;
+        public static BigInteger ShiftRight(BigInteger value, int shift)
+        {
+            return value >> shift;
+        }
 
         /// <summary>
         /// Returns the square of the specified <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static BigInteger Square(BigInteger value) => value * value;
+        public static BigInteger Square(BigInteger value)
+        {
+            return value * value;
+        }
 
         /// <summary>
         /// Returns the rounded value of the specified <see cref="BigInteger"/> object.
@@ -1054,13 +1538,13 @@ namespace BigIntegerGMP
         public static BigInteger Round(BigInteger value)
         {
             // Assume we are rounding to the nearest integer
-            BigInteger roundingBase = BigInteger.One;
+            var roundingBase = BigInteger.One;
 
             // Calculate the remainder when dividing by the rounding base
-            BigInteger remainder = value % roundingBase;
+            var remainder = value % roundingBase;
 
             // Determine if the remainder is less than half of the rounding base
-            BigInteger halfBase = roundingBase / Two;
+            var halfBase = roundingBase / Two;
 
             // If the remainder is less than halfBase, round down, otherwise round up
             if (remainder < halfBase)
@@ -1074,11 +1558,76 @@ namespace BigIntegerGMP
                 return value + (roundingBase - remainder);
             }
         }
-
+        /// <summary>
+        /// Compares two <see cref="BigInteger"/> objects and returns an integer that indicates their relationship.
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public static int Compare(BigInteger left, BigInteger right)
+        {
+            return left.CompareTo(right);
+        }
+        /// <summary>
+        /// Parses the specified string value to a <see cref="BigInteger"/> object. The string must be in base 16 format.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static BigInteger Parse(string value)
+        {
+            return new BigInteger(value);
+        }
+        /// <summary>
+        /// Parses the specified string value to a <see cref="BigInteger"/> object with the specified base format.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public static BigInteger Parse(string value, BaseFormat format)
+        {
+            return new BigInteger(value, format);
+        }
+        /// <summary>
+        /// Tries to parse the specified string value to a <see cref="BigInteger"/> object. The string must be in base 16 format.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="result"></param>
+        /// <returns></returns>
+        public static bool TryParse(string value, out BigInteger result)
+        {
+            if(IsValid(value, BaseFormat.Base16))
+            {
+                result = new BigInteger(value);
+                return true;
+            }
+            result = Zero;
+            return false;
+        }
 
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Gets if the <see cref="BigInteger"/> object's sign is one.
+        /// </summary>
+        public bool IsOne => Sign() == 1;
+        /// <summary>
+        /// Gets if the <see cref="BigInteger"/> object's sign is zero.
+        /// </summary>
+        public bool IsZero => Sign() == 0;
+        /// <summary>
+        /// Returns the left shifted <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="shift"></param>
+        /// <returns></returns>
+        public BigInteger ShiftLeft(int shift) => this << shift;
+        /// <summary>
+        /// Returns the right shifted <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="shift"></param>
+        /// <returns></returns>
+        public BigInteger ShiftRight(int shift) => this >> shift;
+
         /// <summary>
         /// Gets the sign of the BigInteger.
         /// </summary>
@@ -1087,7 +1636,9 @@ namespace BigIntegerGMP
         /// -1 if the BigInteger is negative, 
         /// 0 if the BigInteger is zero.
         /// </returns>
-        public int Sign() => mpz_sgn(_value) > 0 ? 1 : mpz_sgn(_value) < 0 ? -1 : 0;
+        public int Sign()
+        => mpz_sgn(_value) > 0 ? 1 : mpz_sgn(_value) < 0 ? -1 : 0;
+
         /// <summary>
         /// Gets if the <see cref="BigInteger"/> object is an even number.
         /// </summary>
@@ -1111,14 +1662,16 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="certainty"></param>
         /// <returns></returns>
-        public bool IsProbablePrime(int certainty = 10) => IsProbablePrime(this, certainty);
+        public bool IsProbablePrime(int certainty = 10)
+        => IsProbablePrime(this, certainty);
 
         /// <summary>
         /// Returns the modulus inverse of the <see cref="BigInteger"/> object with the specified modulus.
         /// </summary>
         /// <param name="modulus"></param>
         /// <returns></returns>
-        public BigInteger ModInverse(BigInteger modulus) => ModInverse(this, modulus);
+        public BigInteger ModInverse(BigInteger modulus)
+        => ModInverse(this, modulus);
 
         /// <summary>
         /// Returns the power of the specified <see cref="BigInteger"/> object with the specified exponent.
@@ -1130,13 +1683,13 @@ namespace BigIntegerGMP
             BigInteger ReduceResult(BigInteger value)
             {
                 // Example reduction logic: divide by a large constant to manage size
-                BigInteger largeConstant = new BigInteger("100000000000000000000000000000000000", BaseFormat.Base16);
+                var largeConstant = new BigInteger("100000000000000000000000000000000000", BaseFormat.Base16);
                 return value / largeConstant;
             }
             BigInteger ReduceBaseValue(BigInteger value)
             {
                 // Example reduction logic: divide by a large constant to manage size
-                BigInteger largeConstant = new BigInteger("100000000000000000000000000000000000", BaseFormat.Base16);
+                var largeConstant = new BigInteger("100000000000000000000000000000000000", BaseFormat.Base16);
                 return value / largeConstant;
             }
 
@@ -1152,8 +1705,8 @@ namespace BigIntegerGMP
                 throw new ArgumentOutOfRangeException(nameof(exponent), "Exponent must be non-negative.");
             }
 
-            BigInteger result = One;
-            BigInteger baseValue = this;
+            var result = One;
+            var baseValue = this;
 
             while (exponent > Zero)
             {
@@ -1180,6 +1733,14 @@ namespace BigIntegerGMP
             return result;
         }
         /// <summary>
+        /// Returns the modulus of the <see cref="BigInteger"/> object with the specified modulus.
+        /// </summary>
+        /// <param name="modulus"></param>
+        /// <returns></returns>
+        public BigInteger Mod(BigInteger modulus)
+        => this % modulus;
+
+        /// <summary>
         /// Gets the bit length of the <see cref="BigInteger"/> object.
         /// </summary>
         /// <returns></returns>
@@ -1190,32 +1751,27 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="i"></param>
         /// <returns></returns>
-        public bool TestBit(int i) => mpz_tstbit(_value, new mp_bitcnt_t((uint)i)) != 0;
+        public bool TestBit(int i)
+        => mpz_tstbit(_value, new mp_bitcnt_t((uint)i)) != 0;
 
         /// <summary>
         /// Sets the bit at the specified index.
         /// </summary>
         /// <param name="i"></param>
-        public void SetBit(int i)
-        {
-            mpz_setbit(_value, new mp_bitcnt_t((uint)i));
-        }
+        public void SetBit(int i) => mpz_setbit(_value, new mp_bitcnt_t((uint)i));
+
         /// <summary>
         /// Clears the bit at the specified index.
         /// </summary>
         /// <param name="i"></param>
-        public void ClearBit(int i)
-        {
-            mpz_clrbit(_value, new mp_bitcnt_t((uint)i));
-        }
+        public void ClearBit(int i) => mpz_clrbit(_value, new mp_bitcnt_t((uint)i));
+
         /// <summary>
         /// Flips the bit at the specified index.
         /// </summary>
         /// <param name="i"></param>
         public void FlipBit(int i)
-        {
-            mpz_combit(_value, new mp_bitcnt_t((uint)i));
-        }
+        => mpz_combit(_value, new mp_bitcnt_t((uint)i));
         /// <summary>
         /// Returns the byte array representation of the <see cref="BigInteger"/> object.
         /// </summary>
@@ -1237,16 +1793,64 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="format"></param>
         /// <returns></returns>
-        public string ToString(BaseFormat format) =>
-            format == BaseFormat.Base64
-                ? Convert.ToBase64String(ToByteArray())
-                : mpz_get_str(new char_ptr(nint.Zero), -(int)format, _value).ToString();
+        public string ToString(BaseFormat format)
+        => format == BaseFormat.Base64 ? Convert.ToBase64String(ToByteArray()) : mpz_get_str(new char_ptr(nint.Zero), -(int)format, _value).ToString();
 
         /// <summary>
-        /// Returns the string representation of the <see cref="BigInteger"/> object in the base 10 format.
+        /// Returns the string representation of the <see cref="BigInteger"/> object in the base 16 format.
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
+        public override string ToString() => mpz_get_str(new char_ptr(nint.Zero), 16, _value).ToString();
+
+        /// <summary>
+        /// Gets the lowest set bit of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public int GetLowestSetBit()
+        => (int)mpz_scan1(_value, 0).Value;
+
+        /// <summary>
+        /// Gets the integer value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public int ToInt32() => mpz_get_si(_value);
+        /// <summary>
+        /// Gets the decimal value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public decimal ToDecimal()
+        {
+            // Check if the BigInteger is zero
+            if (this == BigInteger.Zero)
+                return 0m;
+
+            // Define the maximum decimal value as a BigInteger
+            var maxValue = new BigInteger(decimal.MaxValue);
+            var minValue = new BigInteger(decimal.MinValue);
+
+            // If the value is within the range of a decimal, directly convert it
+            if (this >= minValue && this <= maxValue)
+                return (decimal)(double)this; // Convert BigInteger to double first, then to decimal
+
+            // Split the BigInteger into smaller parts
+            // Use the largest power of 10 that fits within a decimal
+            var tenPower28 = BigInteger.Pow(10, 28);
+            var current = this;
+            var result = 0m;
+            var scale = 0;
+
+            while (current != BigInteger.Zero)
+            {
+                // Get the last 28 digits
+                current = DivRem(current, tenPower28, out var remainder);
+
+                // Convert the remainder to decimal and adjust the scale
+                result += (decimal)(double)remainder / (decimal)System.Math.Pow(10, scale);
+                scale += 28;
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// Clones the <see cref="BigInteger"/> object.
@@ -1255,17 +1859,34 @@ namespace BigIntegerGMP
         public object Clone() => new BigInteger(this);
 
         /// <summary>
+        /// Compares the <see cref="BigInteger"/> object to the specified object.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public int CompareTo(object? other)
+        {
+            if (other == null)
+                return 1;
+            if (other is BigInteger integer)
+                return mpz_cmp(_value, integer._value);
+            throw new ArgumentException("Object is not a BigInteger.");
+        }
+
+        /// <summary>
         /// Equality comparison for the <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public override bool Equals(object obj) => obj is BigInteger integer && mpz_cmp(_value, integer._value) == 0;
+        public override bool Equals(object? obj) => obj is BigInteger integer && mpz_cmp(_value, integer._value) == 0;
 
         /// <summary>
         /// Gets the hash code for the <see cref="BigInteger"/> object.
         /// </summary>
         /// <returns></returns>
-        public override int GetHashCode() => mpz_get_si(_value);
+        public override int GetHashCode()
+        {
+            return mpz_get_si(_value);
+        }
 
         /// <summary>
         /// Clears the <see cref="BigInteger"/> object and resets it to zero.
@@ -1290,6 +1911,5 @@ namespace BigIntegerGMP
         ~BigInteger() => Dispose();
 
         #endregion
-
     }
 }
