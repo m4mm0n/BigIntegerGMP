@@ -147,5 +147,31 @@ namespace BigIntegerGMP.Utils
                 ptr[i] = value[startIndex + i];
             }
         }
+        /// <summary>
+        /// In some instances, the enum value does not match the value of the enum.
+        /// </summary>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public static int GetBaseFromBaseFormat(BaseFormat format)
+        {
+            return format switch
+            {
+                BaseFormat.Base2 => -2,
+                BaseFormat.Base8 => -8,
+                BaseFormat.Base10 => -10,
+                BaseFormat.Base16 => -16,
+                _ => 0
+            };
+        }
+        /// <summary>
+        /// Converts a Base-64 encoded string directly to hexadecimal aka Base-16 
+        /// </summary>
+        /// <param name="base64String"></param>
+        /// <returns></returns>
+        public static string FromBase64(this string base64String)
+        {
+            var data = Convert.FromBase64String(base64String);
+            return data.Aggregate("", (current, b) => current + b.ToString("X2"));
+        }
     }
 }

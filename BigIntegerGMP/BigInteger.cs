@@ -212,15 +212,8 @@ namespace BigIntegerGMP
             {
                 _value = new mpz_t();
                 if (format == BaseFormat.Base64)
-                {
-                    var byteArray = Convert.FromBase64String(value);
-                    var ptr = Marshal.AllocHGlobal(byteArray.Length);
-                    Marshal.Copy(byteArray, 0, ptr, byteArray.Length);
-                    mpz_import(_value, (size_t)byteArray.Length, 1, 1, 0, 0, new void_ptr(ptr));
-                    Marshal.FreeHGlobal(ptr);
-                }
-                else
-                    mpz_init_set_str(_value, new char_ptr(value), (int)format);
+                    value = value.FromBase64();
+                mpz_init_set_str(_value, new char_ptr(value), -(int)format);
             }
             catch (Exception ex)
             {
@@ -1422,21 +1415,52 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="bitLength"></param>
         /// <returns></returns>
-        public static BigInteger Random(uint bitLength)
+        public static BigInteger Random(int bitLength)
         {
-            var result = One;
-            var bitLen = (bitLength + 7) / 8;
-            var bytes = new byte[bitLen];
-            RandomNumberGenerator.Fill(bytes);
-            var excessBits = (bitLen * 8) - bitLength;
-            if(excessBits > 0)
+            if (bitLength <= 0)
+                throw new ArgumentException("bitLength must be a positive integer.");
+
+            var byteLength = (bitLength + 7) / 8; // Calculate the byte length
+            var randomBytes = new byte[byteLength];
+            RandomNumberGenerator.Fill(randomBytes); // Fill with cryptographically secure random bytes
+
+            // Mask the extra bits if the bit length is not a multiple of 8
+            var excessBits = (byteLength * 8) - bitLength;
+            if (excessBits > 0)
             {
-                var mask = (byte)(0xFF >> (int)excessBits);
-                bytes[0] &= mask;
+                var mask = (byte)(0xFF >> excessBits);
+                randomBytes[0] &= mask;
             }
 
-            result = new BigInteger(bytes, bytes.Length, false, true);
-            return result;
+            return new BigInteger(randomBytes, randomBytes.Length, true, true);
+        }
+        /// <summary>
+        /// Returns the random <see cref="BigInteger"/> object within the specified range.
+        /// </summary>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static BigInteger Random(BigInteger min, BigInteger max)
+        {
+            if (min >= max)
+                throw new ArgumentException("min must be less than max.");
+
+            var range = max - min;
+            var bitLength = range?.BitLength();
+            if (bitLength is null)
+                throw new ArgumentException("The range is too large.");
+
+            BigInteger? randomValue;
+            do
+            {
+                randomValue = Random(bitLength.Value); // Generate a random value up to the bit length of the range
+            } while (randomValue >= range); // Ensure the random value is within the range
+
+            if (randomValue is null)
+                throw new ArgumentException("The random value is null.");
+
+            return min + randomValue;
         }
         /// <summary>
         /// Returns the left-shifted <see cref="BigInteger"/> object.
@@ -1709,7 +1733,7 @@ namespace BigIntegerGMP
         /// Returns the string representation of the <see cref="BigInteger"/> object in the base 16 format.
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => mpz_get_str(new char_ptr(nint.Zero), 16, _value).ToString();
+        public override string ToString() => mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
 
         /// <summary>
         /// Returns the string representation of the <see cref="BigInteger"/> object in the specified base format.

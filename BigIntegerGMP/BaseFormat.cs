@@ -3,7 +3,7 @@
     /// <summary>
     /// Base format
     /// </summary>
-    public enum BaseFormat : int
+    public enum BaseFormat
     {
         /// <summary>
         /// Base 2
