@@ -171,7 +171,8 @@ namespace BigIntegerGMP.Utils
         public static string FromBase64(this string base64String)
         {
             var data = Convert.FromBase64String(base64String);
-            return data.Aggregate("", (current, b) => current + b.ToString("X2"));
+            return new BigInteger(data).ToString(BaseFormat.Base16);
+            //return data.Aggregate("", (current, b) => current + b.ToString("X2"));
         }
     }
 }

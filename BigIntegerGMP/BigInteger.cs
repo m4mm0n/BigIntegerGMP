@@ -212,8 +212,12 @@ namespace BigIntegerGMP
             {
                 _value = new mpz_t();
                 if (format == BaseFormat.Base64)
+                {
                     value = value.FromBase64();
-                mpz_init_set_str(_value, new char_ptr(value), -(int)format);
+                    format = BaseFormat.Base16;
+                }
+                if(mpz_init_set_str(_value, new char_ptr(value), (int)format) != 0)
+                    throw new FormatException("The value is not in a valid format.");
             }
             catch (Exception ex)
             {
