@@ -1558,6 +1558,11 @@ namespace BigIntegerGMP
 
         #region Public Methods
         /// <summary>
+        /// Returns the absolute value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public BigInteger Abs() => Abs(this);
+        /// <summary>
         /// Gets if the <see cref="BigInteger"/> object's sign is one.
         /// </summary>
         public bool IsOne => Sign() == 1;
