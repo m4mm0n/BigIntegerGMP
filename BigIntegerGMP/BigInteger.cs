@@ -10,7 +10,7 @@ namespace BigIntegerGMP
     /// BigInteger class using the GMP library.
     /// (c)2024 by mammon // AMPED
     /// </summary>
-    public class BigInteger : IDisposable, ICloneable
+    public class BigInteger : IDisposable, ICloneable, IComparable<BigInteger>
     {
         #region Private Fields
 
@@ -1572,6 +1572,18 @@ namespace BigIntegerGMP
         /// <returns></returns>
         public BigInteger ShiftLeft(int shift) => this << shift;
         /// <summary>
+        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
+        /// </summary>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public BigInteger Multiply(int right) => this * right;
+        /// <summary>
+        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
+        /// </summary>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public BigInteger Multiply(BigInteger right) => this * right;
+        /// <summary>
         /// Returns the right shifted <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="shift"></param>
@@ -1821,6 +1833,21 @@ namespace BigIntegerGMP
         public int ToInt32() => mpz_get_si(_value);
 
         /// <summary>
+        /// Gets the long value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="OverflowException"></exception>
+        public long ToLong()
+        {
+            // Check if the value fits within a signed long range
+            if (mpz_fits_slong_p(_value) == 0) // Returns 0 if the value doesn't fit
+                throw new OverflowException("The BigInteger value is too large or too small to fit into a long.");
+
+            // Perform the conversion using GMP's mpz_get_si
+            return mpz_get_si(_value);
+        }
+
+        /// <summary>
         /// Gets the decimal value of the <see cref="BigInteger"/> object.
         /// </summary>
         /// <returns></returns>
@@ -1877,6 +1904,13 @@ namespace BigIntegerGMP
                 return mpz_cmp(_value, integer._value);
             throw new ArgumentException("Object is not a BigInteger.");
         }
+
+        /// <summary>
+        /// Compares the <see cref="BigInteger"/> object to the specified <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        public int CompareTo(BigInteger? other) => other is null ? 1 : mpz_cmp(_value, other._value);
 
         /// <summary>
         /// Equality comparison for the <see cref="BigInteger"/> object.
