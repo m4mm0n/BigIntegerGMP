@@ -1,33 +1,23 @@
-﻿namespace BigIntegerGMP
+﻿using System.ComponentModel;
+
+namespace BigIntegerGMP
 {
     /// <summary>
     /// Base format
     /// </summary>
     public enum BaseFormat
     {
-        /// <summary>
-        /// Base 2
-        /// </summary>
+        [Description("Base 2")]
         Base2 = 2,
-        /// <summary>
-        /// Base 8
-        /// </summary>
+        [Description("Base 8")]
         Base8 = 8,
-        /// <summary>
-        /// Base 10
-        /// </summary>
+        [Description("Base 10")]
         Base10 = 10,
-        /// <summary>
-        /// Base 16
-        /// </summary>
+        [Description("Base 16")]
         Base16 = 16,
-        /// <summary>
-        /// Base 32
-        /// </summary>
+        [Description("Base 32")]
         Base32 = 32,
-        /// <summary>
-        /// Base 64
-        /// </summary>
+        [Description("Base 64")]
         Base64 = 64
     }
 }

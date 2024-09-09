@@ -771,7 +771,7 @@ namespace BigIntegerGMP
             if (left is null || right is null)
                 return null;
             var result = new BigInteger();
-            mpz_add(result._value, left._value, result._value);
+            mpz_add(result._value, left._value, right._value);
             return result;
         }
 
@@ -1428,7 +1428,7 @@ namespace BigIntegerGMP
             var randomBytes = new byte[byteLength];
             RandomNumberGenerator.Fill(randomBytes); // Fill with cryptographically secure random bytes
 
-            // Mask the extra bits if the bit length is not a multiple of 8
+            // Mask the excess bits if the bit length is not a multiple of 8
             var excessBits = (byteLength * 8) - bitLength;
             if (excessBits > 0)
             {
@@ -1436,7 +1436,7 @@ namespace BigIntegerGMP
                 randomBytes[0] &= mask;
             }
 
-            return new BigInteger(randomBytes, randomBytes.Length, true, true);
+            return new BigInteger(randomBytes, randomBytes.Length, true, true); // Use the provided constructor correctly
         }
         /// <summary>
         /// Returns the random <see cref="BigInteger"/> object within the specified range.
@@ -1451,18 +1451,13 @@ namespace BigIntegerGMP
                 throw new ArgumentException("min must be less than max.");
 
             var range = max - min;
-            var bitLength = range?.BitLength();
-            if (bitLength is null)
-                throw new ArgumentException("The range is too large.");
+            var bitLength = range.BitLength(); // No need for nullable; we expect this to work for valid BigInteger
 
-            BigInteger? randomValue;
+            BigInteger randomValue;
             do
             {
-                randomValue = Random(bitLength.Value); // Generate a random value up to the bit length of the range
+                randomValue = Random(bitLength); // Generate a random value up to the bit length of the range
             } while (randomValue >= range); // Ensure the random value is within the range
-
-            if (randomValue is null)
-                throw new ArgumentException("The random value is null.");
 
             return min + randomValue;
         }
@@ -1557,6 +1552,13 @@ namespace BigIntegerGMP
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Returns the modulus power of the <see cref="BigInteger"/> object with the specified exponent and modulus.
+        /// </summary>
+        /// <param name="exponent"></param>
+        /// <param name="modulus"></param>
+        /// <returns></returns>
+        public BigInteger ModPow(BigInteger exponent, BigInteger modulus) => ModPow(this, exponent, modulus);
         /// <summary>
         /// Returns the absolute value of the <see cref="BigInteger"/> object.
         /// </summary>
