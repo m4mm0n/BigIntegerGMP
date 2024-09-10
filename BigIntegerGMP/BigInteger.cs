@@ -207,7 +207,9 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="value"></param>
         /// <param name="format"></param>
-        public BigInteger(string value, BaseFormat format) {
+        public BigInteger(string value, BaseFormat format)
+        {
+            var form = 0;
             try
             {
                 _value = new mpz_t();
@@ -216,7 +218,72 @@ namespace BigIntegerGMP
                     value = value.FromBase64();
                     format = BaseFormat.Base16;
                 }
-                if(mpz_init_set_str(_value, new char_ptr(value), (int)format) != 0)
+
+                switch (format)
+                {
+                    case BaseFormat.Base2:
+                        form = 2;
+                        break;
+                    case BaseFormat.Base8:
+                        form = 8;
+                        break;
+                    case BaseFormat.Base10:
+                        form = 10;
+                        break;
+                    case BaseFormat.Base16:
+                        form = -16;
+                        break;
+                    case BaseFormat.Base32:
+                        form = -32;
+                        break;
+                }
+                if(mpz_init_set_str(_value, new char_ptr(value), form) != 0)
+                    throw new FormatException("The value is not in a valid format.");
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value and base format.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="format"></param>
+        /// <exception cref="FormatException"></exception>
+        public BigInteger(string value, int format)
+        {
+            try
+            {
+                var form = 0;
+                _value = new mpz_t();
+
+                switch (format)
+                {
+                    case 2:
+                        form = 2;
+                        break;
+                    case 8:
+                        form = 8;
+                        break;
+                    case 10:
+                        form = 10;
+                        break;
+                    case 16:
+                        form = -16;
+                        break;
+                    case 32:
+                        form = -32;
+                        break;
+                    case 64:
+                        form = -16;
+                        value = value.FromBase64();
+                        break;
+                    default:
+                        throw new FormatException("The value is not in a valid format.");
+                }
+
+                if (mpz_init_set_str(_value, new char_ptr(value), form) != 0)
                     throw new FormatException("The value is not in a valid format.");
             }
             catch (Exception ex)
@@ -1763,10 +1830,49 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="format"></param>
         /// <returns></returns>
-        public string ToString(BaseFormat format) => format == BaseFormat.Base64
-            ? Convert.ToBase64String(ToByteArray())
-            : mpz_get_str(new char_ptr(nint.Zero), -(int)format, _value).ToString();
-
+        public string ToString(BaseFormat format)
+        {
+            switch (format)
+            {
+                case BaseFormat.Base2:
+                    return mpz_get_str(new char_ptr(nint.Zero), 2, _value).ToString();
+                case BaseFormat.Base8:
+                    return mpz_get_str(new char_ptr(nint.Zero), 8, _value).ToString();
+                case BaseFormat.Base10:
+                    return mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
+                case BaseFormat.Base32:
+                    return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
+                case BaseFormat.Base64:
+                    return Convert.ToBase64String(ToByteArray());
+                case BaseFormat.Base16:
+                default:
+                    return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
+            }
+        }
+        /// <summary>
+        /// Returns the string representation of the <see cref="BigInteger"/> object in the specified base format.
+        /// </summary>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public string ToString(int format)
+        {
+            switch (format)
+            {
+                case 2:
+                    return mpz_get_str(new char_ptr(nint.Zero), 2, _value).ToString();
+                case 8:
+                    return mpz_get_str(new char_ptr(nint.Zero), 8, _value).ToString();
+                case 10:
+                    return mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
+                case -32:
+                    return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
+                case 64:
+                    return Convert.ToBase64String(ToByteArray());
+                case -16:
+                default:
+                    return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
+            }
+        }
         /// <summary>
         /// Returns the string representation of the <see cref="BigInteger"/> object in the base 16 format.
         /// </summary>
