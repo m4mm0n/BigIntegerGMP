@@ -1,4 +1,5 @@
-﻿using Math.Gmp.Native;
+﻿using System.Diagnostics;
+using Math.Gmp.Native;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using BigIntegerGMP.Utils;
@@ -270,19 +271,18 @@ namespace BigIntegerGMP
                         form = 10;
                         break;
                     case 16:
-                        form = -16;
+                        form = 16;
                         break;
                     case 32:
-                        form = -32;
+                        form = 32;
                         break;
                     case 64:
-                        form = -16;
+                        form = 16;
                         value = value.FromBase64();
                         break;
                     default:
                         throw new FormatException("The value is not in a valid format.");
                 }
-
                 if (mpz_init_set_str(_value, new char_ptr(value), form) != 0)
                     throw new FormatException("The value is not in a valid format.");
             }
@@ -378,7 +378,7 @@ namespace BigIntegerGMP
             }
         }
 
-        #endregion
+#endregion
 
         #region Operators
 
