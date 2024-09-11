@@ -196,7 +196,6 @@ namespace BigIntegerGMP
                 throw new FormatException("The value is not in a valid format.", ex);
             }
         }
-
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value from base 16.
         /// </summary>
@@ -216,8 +215,11 @@ namespace BigIntegerGMP
                 _value = new mpz_t();
                 if (format == BaseFormat.Base64)
                 {
-                    value = value.FromBase64();
-                    format = BaseFormat.Base16;
+                    var btmp = ConvertFromBase64(value);
+                    if(btmp != null)
+                        mpz_set(_value, btmp._value);
+                    else
+                        throw new FormatException("The value is not in a valid format.");
                 }
 
                 switch (format)
@@ -232,10 +234,10 @@ namespace BigIntegerGMP
                         form = 10;
                         break;
                     case BaseFormat.Base16:
-                        form = -16;
+                        form = 16;
                         break;
                     case BaseFormat.Base32:
-                        form = -32;
+                        form = 32;
                         break;
                 }
                 if(mpz_init_set_str(_value, new char_ptr(value), form) != 0)
@@ -278,13 +280,24 @@ namespace BigIntegerGMP
                         break;
                     case 64:
                         form = 16;
-                        value = value.FromBase64();
                         break;
                     default:
                         throw new FormatException("The value is not in a valid format.");
                 }
-                if (mpz_init_set_str(_value, new char_ptr(value), form) != 0)
-                    throw new FormatException("The value is not in a valid format.");
+
+                if (form == 64)
+                {
+                    var btmp = ConvertFromBase64(value);
+                    if(btmp != null)
+                        mpz_set(_value, btmp._value);
+                    else
+                        throw new FormatException("The value is not in a valid format.");
+                }
+                else
+                {
+                    if (mpz_init_set_str(_value, new char_ptr(value), form) != 0)
+                        throw new FormatException("The value is not in a valid format.");
+                }
             }
             catch (Exception ex)
             {
@@ -2059,6 +2072,36 @@ namespace BigIntegerGMP
         /// Equal to disposal of the <see cref="BigInteger"/> object.
         /// </summary>
         ~BigInteger() => Dispose();
+
+        #endregion
+
+        #region Private Methods
+
+        private BigInteger? ConvertFromBase64(string base64String)
+        {
+            var Base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+            // Validate the Base64 string
+            if (string.IsNullOrEmpty(base64String))
+                throw new ArgumentException("Input string cannot be null or empty.");
+
+            // Remove any padding characters ('=')
+            base64String = base64String.TrimEnd('=');
+
+            var result = new BigInteger(0);
+            var base64 = new BigInteger(64);
+
+            foreach (var c in base64String)
+            {
+                var index = Base64Chars.IndexOf(c);
+                if (index < 0)
+                    throw new ArgumentException($"Invalid character '{c}' in Base-64 string.");
+
+                result = result * base64 + new BigInteger(index);
+            }
+
+            return result;
+        }
 
         #endregion
     }
