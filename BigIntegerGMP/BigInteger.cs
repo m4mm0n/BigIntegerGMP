@@ -279,7 +279,7 @@ namespace BigIntegerGMP
                         form = 32;
                         break;
                     case 64:
-                        form = 16;
+                        form = 64;
                         break;
                     default:
                         throw new FormatException("The value is not in a valid format.");
@@ -291,7 +291,7 @@ namespace BigIntegerGMP
                     if(btmp != null)
                         mpz_set(_value, btmp._value);
                     else
-                        throw new FormatException("The value is not in a valid format.");
+                        throw new FormatException("[64] The value is not in a valid format.");
                 }
                 else
                 {
@@ -1856,7 +1856,7 @@ namespace BigIntegerGMP
                 case BaseFormat.Base32:
                     return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
                 case BaseFormat.Base64:
-                    return Convert.ToBase64String(ToByteArray());
+                    return BaseConversionHelper.ConvertToBase64(this);
                 case BaseFormat.Base16:
                 default:
                     return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
@@ -1877,11 +1877,11 @@ namespace BigIntegerGMP
                     return mpz_get_str(new char_ptr(nint.Zero), 8, _value).ToString();
                 case 10:
                     return mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
-                case -32:
+                case 32:
                     return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
                 case 64:
-                    return Convert.ToBase64String(ToByteArray());
-                case -16:
+                    return BaseConversionHelper.ConvertToBase64(this);
+                case 16:
                 default:
                     return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
             }
@@ -1910,30 +1910,29 @@ namespace BigIntegerGMP
             if (isBinary)
                 return len switch
                 {
-                    2 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : -2, _value).ToString(),
-                    4 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 4 : -4, _value).ToString(),
-                    8 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 8 : -8, _value).ToString(),
-                    10 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString(),
-                    16 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString(),
-                    32 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 32 : -32, _value).ToString(),
-                    64 => Convert.ToBase64String(ToByteArray()),
-                    _ => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : -2, _value).ToString().Substring(0, len)
+                    2 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : 2, _value).ToString(),
+                    8 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 8 : 8, _value).ToString(),
+                    10 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString(),
+                    16 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString(),
+                    32 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? -32 : 32, _value).ToString(),
+                    64 => BaseConversionHelper.ConvertToBase64(this),
+                    _ => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : 2, _value).ToString().Substring(0, len)
                 };
             if (isHex)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString();
             if(isDecimal)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString();
             if(isNumber)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString();
 
             return ToString();
         }

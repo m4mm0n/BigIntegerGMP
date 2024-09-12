@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace BigIntegerGMP.Utils
 {
@@ -156,23 +157,80 @@ namespace BigIntegerGMP.Utils
         {
             return format switch
             {
-                BaseFormat.Base2 => -2,
-                BaseFormat.Base8 => -8,
-                BaseFormat.Base10 => -10,
+                BaseFormat.Base2 => 2,
+                BaseFormat.Base8 => 8,
+                BaseFormat.Base10 => 10,
                 BaseFormat.Base16 => -16,
+                BaseFormat.Base32 => -32,
+                BaseFormat.Base64 => 64,
                 _ => 0
             };
         }
         /// <summary>
-        /// Converts a Base-64 encoded string directly to hexadecimal aka Base-16 
+        /// A simple method to check if a string is a valid BigInteger.
         /// </summary>
-        /// <param name="base64String"></param>
+        /// <param name="value"></param>
+        /// <param name="format"></param>
         /// <returns></returns>
-        public static string FromBase64(this string base64String)
+        public static bool IsValidBigInteger(string value, int format)
         {
-            var data = Convert.FromBase64String(base64String);
-            return new BigInteger(data).ToString(BaseFormat.Base16);
-            //return data.Aggregate("", (current, b) => current + b.ToString("X2"));
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+            try
+            {
+                switch (format)
+                {
+                    case 2: // Base-2 (Binary)
+                        if (!Regex.IsMatch(value, "^[01]+$")) return false;
+                        break;
+                    case 8: // Base-8 (Octal)
+                        if (!Regex.IsMatch(value, "^[0-7]+$")) return false;
+                        break;
+                    case 10: // Base-10 (Decimal)
+                        if (!Regex.IsMatch(value, "^[0-9]+$")) return false;
+                        break;
+                    case 16: // Base-16 (Hexadecimal)
+                        if (!Regex.IsMatch(value, "^[0-9A-Fa-f]+$")) return false;
+                        break;
+                    case 32: // Base-32
+                        if (!Regex.IsMatch(value, "^[A-V0-9]+$")) return false; // Base32 uses A-V and 0-9
+                        break;
+                    case 64: // Base-64
+                        if (!Regex.IsMatch(value, "^[A-Za-z0-9+/]+={0,2}$")) return false; // Includes '=' padding
+                        break;
+                    default:
+                        return false;
+                }
+                var bigInt = new BigInteger(value, (BaseFormat)format);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
+        /// <summary>
+        /// A simple method to get the probable base format of a string.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns>Returns the probable base-format if a match is found, otherwise -1 if no match is found...</returns>
+        public static int ProbableBaseFormat(string value)
+        {
+            if (Regex.IsMatch(value, "^[A-Za-z0-9+/]+={0,2}$"))
+                return 64;
+            if (Regex.IsMatch(value, "^[A-V0-9]+$"))
+                return 32;
+            if(Regex.IsMatch(value, "^[0-9A-Fa-f]+$"))
+                return 16;
+            if (Regex.IsMatch(value, "^[0-9]+$"))
+                return 10;
+            if (Regex.IsMatch(value, "^[0-7]+$"))
+                return 8;
+            if (Regex.IsMatch(value, "^[01]+$"))
+                return 2;
+
+            return -1;
+        }
+
     }
 }
