@@ -182,7 +182,7 @@ namespace BigIntegerGMP
                 {
                     // Convert the fractional part to an integer
                     var fractionalPart = integerPart;
-                    var scaleMultiplier = BigInteger.Pow(10, scale);
+                    var scaleMultiplier = Pow(10, scale);
                     integerPart /= scaleMultiplier;
                 }
 
@@ -1497,7 +1497,7 @@ namespace BigIntegerGMP
         public static BigInteger Round(BigInteger value)
         {
             // Assume we are rounding to the nearest integer
-            var roundingBase = BigInteger.One;
+            var roundingBase = One;
 
             // Calculate the remainder when dividing by the rounding base
             var remainder = value % roundingBase;
@@ -1553,10 +1553,32 @@ namespace BigIntegerGMP
             result = Zero;
             return false;
         }
+        /// <summary>
+        /// Returns the number of trailing zeros in the binary representation of the specified <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static int TrailinZeroCount(BigInteger value) => value.TrailingZeroCount();
 
         #endregion
 
         #region Public Methods
+        /// <summary>
+        /// Returns the number of trailing zeros in the binary representation of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns>The number of trailing zeros.</returns>
+        public int TrailingZeroCount() =>
+            IsZero
+                ? -1
+                : // or throw an exception if preferred.
+                (int)mpz_scan1(_value, 0); // Start scanning from bit index 0.
+
+        /// <summary>
+        /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public BigInteger Subtract(BigInteger right) => this - right;
         /// <summary>
         /// Returns the absolute value of the <see cref="BigInteger"/> object.
         /// </summary>
@@ -1842,15 +1864,12 @@ namespace BigIntegerGMP
         /// </summary>
         /// <returns></returns>
         /// <exception cref="OverflowException"></exception>
-        public long ToLong()
-        {
+        public long ToLong() =>
             // Check if the value fits within a signed long range
-            if (mpz_fits_slong_p(_value) == 0) // Returns 0 if the value doesn't fit
-                throw new OverflowException("The BigInteger value is too large or too small to fit into a long.");
-
-            // Perform the conversion using GMP's mpz_get_si
-            return mpz_get_si(_value);
-        }
+            mpz_fits_slong_p(_value) == 0
+                ? throw // Returns 0 if the value doesn't fit
+                    new OverflowException("The BigInteger value is too large or too small to fit into a long.")
+                : mpz_get_si(_value);
 
         /// <summary>
         /// Gets the decimal value of the <see cref="BigInteger"/> object.
@@ -1859,7 +1878,7 @@ namespace BigIntegerGMP
         public decimal ToDecimal()
         {
             // Check if the BigInteger is zero
-            if (this == BigInteger.Zero)
+            if (this == Zero)
                 return 0m;
 
             // Define the maximum decimal value as a BigInteger
@@ -1872,12 +1891,12 @@ namespace BigIntegerGMP
 
             // Split the BigInteger into smaller parts
             // Use the largest power of 10 that fits within a decimal
-            var tenPower28 = BigInteger.Pow(10, 28);
+            var tenPower28 = Pow(10, 28);
             var current = this;
             var result = 0m;
             var scale = 0;
 
-            while (current != BigInteger.Zero)
+            while (current != Zero)
             {
                 // Get the last 28 digits
                 current = DivRem(current, tenPower28, out var remainder);
@@ -1889,6 +1908,11 @@ namespace BigIntegerGMP
 
             return result;
         }
+        /// <summary>
+        /// Gets the double value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public double ToDouble() => mpz_get_d(_value);
 
         /// <summary>
         /// Clones the <see cref="BigInteger"/> object.
@@ -1901,14 +1925,12 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public int CompareTo(object? other)
-        {
-            if (other == null)
-                return 1;
-            if (other is BigInteger integer)
-                return mpz_cmp(_value, integer._value);
-            throw new ArgumentException("Object is not a BigInteger.");
-        }
+        public int CompareTo(object? other) =>
+            other == null
+                ? 1
+                : other is BigInteger integer
+                    ? mpz_cmp(_value, integer._value)
+                    : throw new ArgumentException("Object is not a BigInteger.");
 
         /// <summary>
         /// Compares the <see cref="BigInteger"/> object to the specified <see cref="BigInteger"/> object.
