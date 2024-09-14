@@ -1639,6 +1639,17 @@ namespace BigIntegerGMP
 
         #region Public Methods
         /// <summary>
+        /// Gets the trailing zero count of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public int TrailingZeroCount() => (int)mpz_scan1(_value, 0);
+        /// <summary>
+        /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Subtract(BigInteger value) => this - value;
+        /// <summary>
         /// Returns the absolute value of the <see cref="BigInteger"/> object.
         /// </summary>
         /// <returns></returns>
