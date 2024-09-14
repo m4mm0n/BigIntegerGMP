@@ -1,4 +1,5 @@
-﻿using Math.Gmp.Native;
+﻿using System.Diagnostics;
+using Math.Gmp.Native;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using BigIntegerGMP.Utils;
@@ -195,7 +196,6 @@ namespace BigIntegerGMP
                 throw new FormatException("The value is not in a valid format.", ex);
             }
         }
-
         /// <summary>
         /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value from base 16.
         /// </summary>
@@ -207,17 +207,97 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="value"></param>
         /// <param name="format"></param>
-        public BigInteger(string value, BaseFormat format) {
+        public BigInteger(string value, BaseFormat format)
+        {
+            var form = 0;
             try
             {
                 _value = new mpz_t();
                 if (format == BaseFormat.Base64)
                 {
-                    value = value.FromBase64();
-                    format = BaseFormat.Base16;
+                    var btmp = ConvertFromBase64(value);
+                    if(btmp != null)
+                        mpz_set(_value, btmp._value);
+                    else
+                        throw new FormatException("The value is not in a valid format.");
                 }
-                if(mpz_init_set_str(_value, new char_ptr(value), (int)format) != 0)
+
+                switch (format)
+                {
+                    case BaseFormat.Base2:
+                        form = 2;
+                        break;
+                    case BaseFormat.Base8:
+                        form = 8;
+                        break;
+                    case BaseFormat.Base10:
+                        form = 10;
+                        break;
+                    case BaseFormat.Base16:
+                        form = 16;
+                        break;
+                    case BaseFormat.Base32:
+                        form = 32;
+                        break;
+                }
+                if(mpz_init_set_str(_value, new char_ptr(value), form) != 0)
                     throw new FormatException("The value is not in a valid format.");
+            }
+            catch (Exception ex)
+            {
+                throw new FormatException("The value is not in a valid format.", ex);
+            }
+        }
+        /// <summary>
+        /// Creates a new instance of the <see cref="BigInteger"/> class with the specified value and base format.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="format"></param>
+        /// <exception cref="FormatException"></exception>
+        public BigInteger(string value, int format)
+        {
+            try
+            {
+                var form = 0;
+                _value = new mpz_t();
+
+                switch (format)
+                {
+                    case 2:
+                        form = 2;
+                        break;
+                    case 8:
+                        form = 8;
+                        break;
+                    case 10:
+                        form = 10;
+                        break;
+                    case 16:
+                        form = 16;
+                        break;
+                    case 32:
+                        form = 32;
+                        break;
+                    case 64:
+                        form = 64;
+                        break;
+                    default:
+                        throw new FormatException("The value is not in a valid format.");
+                }
+
+                if (form == 64)
+                {
+                    var btmp = ConvertFromBase64(value);
+                    if(btmp != null)
+                        mpz_set(_value, btmp._value);
+                    else
+                        throw new FormatException("[64] The value is not in a valid format.");
+                }
+                else
+                {
+                    if (mpz_init_set_str(_value, new char_ptr(value), form) != 0)
+                        throw new FormatException("The value is not in a valid format.");
+                }
             }
             catch (Exception ex)
             {
@@ -311,7 +391,7 @@ namespace BigIntegerGMP
             }
         }
 
-        #endregion
+#endregion
 
         #region Operators
 
@@ -771,7 +851,7 @@ namespace BigIntegerGMP
             if (left is null || right is null)
                 return null;
             var result = new BigInteger();
-            mpz_add(result._value, left._value, result._value);
+            mpz_add(result._value, left._value, right._value);
             return result;
         }
 
@@ -1428,7 +1508,7 @@ namespace BigIntegerGMP
             var randomBytes = new byte[byteLength];
             RandomNumberGenerator.Fill(randomBytes); // Fill with cryptographically secure random bytes
 
-            // Mask the extra bits if the bit length is not a multiple of 8
+            // Mask the excess bits if the bit length is not a multiple of 8
             var excessBits = (byteLength * 8) - bitLength;
             if (excessBits > 0)
             {
@@ -1436,7 +1516,7 @@ namespace BigIntegerGMP
                 randomBytes[0] &= mask;
             }
 
-            return new BigInteger(randomBytes, randomBytes.Length, true, true);
+            return new BigInteger(randomBytes, randomBytes.Length, true, true); // Use the provided constructor correctly
         }
         /// <summary>
         /// Returns the random <see cref="BigInteger"/> object within the specified range.
@@ -1451,18 +1531,13 @@ namespace BigIntegerGMP
                 throw new ArgumentException("min must be less than max.");
 
             var range = max - min;
-            var bitLength = range?.BitLength();
-            if (bitLength is null)
-                throw new ArgumentException("The range is too large.");
+            var bitLength = range.BitLength(); // No need for nullable; we expect this to work for valid BigInteger
 
-            BigInteger? randomValue;
+            BigInteger randomValue;
             do
             {
-                randomValue = Random(bitLength.Value); // Generate a random value up to the bit length of the range
+                randomValue = Random(bitLength); // Generate a random value up to the bit length of the range
             } while (randomValue >= range); // Ensure the random value is within the range
-
-            if (randomValue is null)
-                throw new ArgumentException("The random value is null.");
 
             return min + randomValue;
         }
@@ -1563,22 +1638,6 @@ namespace BigIntegerGMP
         #endregion
 
         #region Public Methods
-        /// <summary>
-        /// Returns the number of trailing zeros in the binary representation of the <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <returns>The number of trailing zeros.</returns>
-        public int TrailingZeroCount() =>
-            IsZero
-                ? -1
-                : // or throw an exception if preferred.
-                (int)mpz_scan1(_value, 0); // Start scanning from bit index 0.
-
-        /// <summary>
-        /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <param name="right"></param>
-        /// <returns></returns>
-        public BigInteger Subtract(BigInteger right) => this - right;
         /// <summary>
         /// Returns the absolute value of the <see cref="BigInteger"/> object.
         /// </summary>
@@ -1783,10 +1842,49 @@ namespace BigIntegerGMP
         /// </summary>
         /// <param name="format"></param>
         /// <returns></returns>
-        public string ToString(BaseFormat format) => format == BaseFormat.Base64
-            ? Convert.ToBase64String(ToByteArray())
-            : mpz_get_str(new char_ptr(nint.Zero), -(int)format, _value).ToString();
-
+        public string ToString(BaseFormat format)
+        {
+            switch (format)
+            {
+                case BaseFormat.Base2:
+                    return mpz_get_str(new char_ptr(nint.Zero), 2, _value).ToString();
+                case BaseFormat.Base8:
+                    return mpz_get_str(new char_ptr(nint.Zero), 8, _value).ToString();
+                case BaseFormat.Base10:
+                    return mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
+                case BaseFormat.Base32:
+                    return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
+                case BaseFormat.Base64:
+                    return BaseConversionHelper.ConvertToBase64(this);
+                case BaseFormat.Base16:
+                default:
+                    return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
+            }
+        }
+        /// <summary>
+        /// Returns the string representation of the <see cref="BigInteger"/> object in the specified base format.
+        /// </summary>
+        /// <param name="format"></param>
+        /// <returns></returns>
+        public string ToString(int format)
+        {
+            switch (format)
+            {
+                case 2:
+                    return mpz_get_str(new char_ptr(nint.Zero), 2, _value).ToString();
+                case 8:
+                    return mpz_get_str(new char_ptr(nint.Zero), 8, _value).ToString();
+                case 10:
+                    return mpz_get_str(new char_ptr(nint.Zero), 10, _value).ToString();
+                case 32:
+                    return mpz_get_str(new char_ptr(nint.Zero), -32, _value).ToString();
+                case 64:
+                    return BaseConversionHelper.ConvertToBase64(this);
+                case 16:
+                default:
+                    return mpz_get_str(new char_ptr(nint.Zero), -16, _value).ToString();
+            }
+        }
         /// <summary>
         /// Returns the string representation of the <see cref="BigInteger"/> object in the base 16 format.
         /// </summary>
@@ -1811,30 +1909,29 @@ namespace BigIntegerGMP
             if (isBinary)
                 return len switch
                 {
-                    2 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : -2, _value).ToString(),
-                    4 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 4 : -4, _value).ToString(),
-                    8 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 8 : -8, _value).ToString(),
-                    10 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString(),
-                    16 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString(),
-                    32 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 32 : -32, _value).ToString(),
-                    64 => Convert.ToBase64String(ToByteArray()),
-                    _ => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : -2, _value).ToString().Substring(0, len)
+                    2 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : 2, _value).ToString(),
+                    8 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 8 : 8, _value).ToString(),
+                    10 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString(),
+                    16 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString(),
+                    32 => mpz_get_str(new char_ptr(nint.Zero), isUpper ? -32 : 32, _value).ToString(),
+                    64 => BaseConversionHelper.ConvertToBase64(this),
+                    _ => mpz_get_str(new char_ptr(nint.Zero), isUpper ? 2 : 2, _value).ToString().Substring(0, len)
                 };
             if (isHex)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 16 : -16, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? -16 : 16, _value).ToString();
             if(isDecimal)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString();
             if(isNumber)
                 return len > 0
-                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString()
+                    ? mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString()
                         .Substring(0, len)
-                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : -10, _value).ToString();
+                    : mpz_get_str(new char_ptr(nint.Zero), isUpper ? 10 : 10, _value).ToString();
 
             return ToString();
         }
@@ -1973,6 +2070,36 @@ namespace BigIntegerGMP
         /// Equal to disposal of the <see cref="BigInteger"/> object.
         /// </summary>
         ~BigInteger() => Dispose();
+
+        #endregion
+
+        #region Private Methods
+
+        private BigInteger? ConvertFromBase64(string base64String)
+        {
+            var Base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+            // Validate the Base64 string
+            if (string.IsNullOrEmpty(base64String))
+                throw new ArgumentException("Input string cannot be null or empty.");
+
+            // Remove any padding characters ('=')
+            base64String = base64String.TrimEnd('=');
+
+            var result = new BigInteger(0);
+            var base64 = new BigInteger(64);
+
+            foreach (var c in base64String)
+            {
+                var index = Base64Chars.IndexOf(c);
+                if (index < 0)
+                    throw new ArgumentException($"Invalid character '{c}' in Base-64 string.");
+
+                result = result * base64 + new BigInteger(index);
+            }
+
+            return result;
+        }
 
         #endregion
     }
