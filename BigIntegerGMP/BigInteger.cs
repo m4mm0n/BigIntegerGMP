@@ -17,6 +17,7 @@ namespace BigIntegerGMP
 
         private mpz_t _value;
         private static gmp_randstate_t _randState;
+        private static Random _intRand = new();
 
         #endregion
 
@@ -789,6 +790,10 @@ namespace BigIntegerGMP
         /// <returns></returns>
         public static bool operator >(BigInteger? left, int right) =>
             left is not null && mpz_cmp_si(left._value, right) > 0;
+        public static bool operator >(BigInteger? left, double right) =>
+            left is not null && mpz_cmp_d(left._value, right) > 0;
+        public static bool operator <(BigInteger? left, double right) =>
+            left is not null && mpz_cmp_d(left._value, right) < 0;
 
         public static bool operator <=(BigInteger? left, BigInteger? right) =>
             left is not null && right is not null && mpz_cmp(left._value, right._value) <= 0;
@@ -1519,6 +1524,24 @@ namespace BigIntegerGMP
             return new BigInteger(randomBytes, randomBytes.Length, true, true); // Use the provided constructor correctly
         }
         /// <summary>
+        /// Returns the random <see cref="BigInteger"/> object within the specified bit length range.
+        /// </summary>
+        /// <param name="minBitLength"></param>
+        /// <param name="maxBitLength"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static BigInteger Random(int minBitLength, int maxBitLength)
+        {
+            if (minBitLength <= 0 || maxBitLength <= 0)
+                throw new ArgumentException("bitLength must be a positive integer.");
+
+            if (minBitLength > maxBitLength)
+                throw new ArgumentException("minBitLength must be less than or equal to maxBitLength.");
+
+            var bitLength = _intRand.Next(minBitLength, maxBitLength);
+            return Random(bitLength);
+        }
+        /// <summary>
         /// Returns the random <see cref="BigInteger"/> object within the specified range.
         /// </summary>
         /// <param name="min"></param>
@@ -1639,10 +1662,51 @@ namespace BigIntegerGMP
 
         #region Public Methods
         /// <summary>
+        /// Returns the division of the specified <see cref="BigInteger"/> object and object.
+        /// </summary>
+        /// <param name="divisor"></param>
+        /// <returns></returns>
+        public BigInteger Divide(BigInteger divisor) => this / divisor;
+        /// <summary>
+        /// Returns the logarithm of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public double Log() => Log(this);
+        /// <summary>
+        /// Returns the negated value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public BigInteger Negate() => Negate(this);
+        /// <summary>
+        /// Returns the division of the specified <see cref="BigInteger"/> object and object.
+        /// </summary>
+        /// <param name="divisor"></param>
+        /// <param name="remainder"></param>
+        /// <returns></returns>
+        public BigInteger DivRem(BigInteger divisor, out BigInteger remainder) => DivRem(this, divisor, out remainder);
+        /// <summary>
+        /// Returns the greatest common divisor of the specified <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger GreatestCommonDivisor(BigInteger value) => GreatestCommonDivisor(this, value);
+        /// <summary>
         /// Gets the trailing zero count of the <see cref="BigInteger"/> object.
         /// </summary>
         /// <returns></returns>
         public int TrailingZeroCount() => (int)mpz_scan1(_value, 0);
+        /// <summary>
+        /// Adds the specified <see cref="BigInteger"/> object to the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Add(BigInteger value) => this + value;
+        /// <summary>
+        /// Adds the specified integer to the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Add(int value) => this + value;
         /// <summary>
         /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
         /// </summary>
