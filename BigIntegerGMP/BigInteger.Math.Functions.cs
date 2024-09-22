@@ -4,6 +4,7 @@ namespace BigIntegerGMP
 {
     public partial class BigInteger : IDisposable, ICloneable, IComparable<BigInteger>
     {
+        #region Abs
         /// <summary>
         /// Returns the absolute value of the specified <see cref="BigInteger"/> object.
         /// </summary>
@@ -15,6 +16,13 @@ namespace BigIntegerGMP
             mpz_abs(result._value, value._value);
             return result;
         }
+        /// <summary>
+        /// Returns the absolute value of the <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <returns></returns>
+        public BigInteger Abs() => Abs(this);
+        #endregion
+        #region Add
         /// <summary>
         /// Returns the sum of the specified <see cref="BigInteger"/> objects.
         /// </summary>
@@ -30,6 +38,20 @@ namespace BigIntegerGMP
         /// <returns></returns>
         public static BigInteger Add(BigInteger left, int right) => left + right;
         /// <summary>
+        /// Adds the specified <see cref="BigInteger"/> object to the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Add(BigInteger value) => this + value;
+        /// <summary>
+        /// Adds the specified integer to the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Add(int value) => this + value;
+        #endregion
+        #region Subtract
+        /// <summary>
         /// Returns the difference of the specified <see cref="BigInteger"/> objects.
         /// </summary>
         /// <param name="left"></param>
@@ -43,6 +65,14 @@ namespace BigIntegerGMP
         /// <param name="right"></param>
         /// <returns></returns>
         public static BigInteger Subtract(BigInteger left, int right) => left - right;
+        /// <summary>
+        /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public BigInteger Subtract(BigInteger value) => this - value;
+        #endregion
+        #region Multiply
         /// <summary>
         /// Returns the product of the specified <see cref="BigInteger"/> objects.
         /// </summary>
@@ -58,6 +88,20 @@ namespace BigIntegerGMP
         /// <returns></returns>
         public static BigInteger Multiply(BigInteger left, int right) => left * right;
         /// <summary>
+        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
+        /// </summary>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public BigInteger Multiply(int right) => this * right;
+        /// <summary>
+        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
+        /// </summary>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public BigInteger Multiply(BigInteger right) => this * right;
+        #endregion
+        #region Divide
+        /// <summary>
         /// Returns the quotient of the specified <see cref="BigInteger"/> objects.
         /// </summary>
         /// <param name="dividend"></param>
@@ -71,6 +115,14 @@ namespace BigIntegerGMP
         /// <param name="divisor"></param>
         /// <returns></returns>
         public static BigInteger Divide(BigInteger dividend, int divisor) => dividend / divisor;
+        /// <summary>
+        /// Returns the division of the specified <see cref="BigInteger"/> object and object.
+        /// </summary>
+        /// <param name="divisor"></param>
+        /// <returns></returns>
+        public BigInteger Divide(BigInteger divisor) => this / divisor;
+        #endregion
+
         /// <summary>
         /// Returns the remainder of the specified <see cref="BigInteger"/> objects.
         /// </summary>
@@ -423,13 +475,6 @@ namespace BigIntegerGMP
                 // Round up by adding the difference to the next multiple of roundingBase
                 value + (roundingBase - remainder);
         }
-
-        /// <summary>
-        /// Returns the division of the specified <see cref="BigInteger"/> object and object.
-        /// </summary>
-        /// <param name="divisor"></param>
-        /// <returns></returns>
-        public BigInteger Divide(BigInteger divisor) => this / divisor;
         /// <summary>
         /// Returns the logarithm of the <see cref="BigInteger"/> object.
         /// </summary>
@@ -453,47 +498,15 @@ namespace BigIntegerGMP
         /// <param name="value"></param>
         /// <returns></returns>
         public BigInteger GreatestCommonDivisor(BigInteger value) => GreatestCommonDivisor(this, value);
-        /// <summary>
-        /// Adds the specified <see cref="BigInteger"/> object to the current <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public BigInteger Add(BigInteger value) => this + value;
-        /// <summary>
-        /// Adds the specified integer to the current <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public BigInteger Add(int value) => this + value;
-        /// <summary>
-        /// Subtracts the specified <see cref="BigInteger"/> object from the current <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public BigInteger Subtract(BigInteger value) => this - value;
-        /// <summary>
-        /// Returns the absolute value of the <see cref="BigInteger"/> object.
-        /// </summary>
-        /// <returns></returns>
-        public BigInteger Abs() => Abs(this);
+
+
         /// <summary>
         /// Returns the left shifted <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="shift"></param>
         /// <returns></returns>
         public BigInteger ShiftLeft(int shift) => this << shift;
-        /// <summary>
-        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
-        /// </summary>
-        /// <param name="right"></param>
-        /// <returns></returns>
-        public BigInteger Multiply(int right) => this * right;
-        /// <summary>
-        /// Returns the sum of the <see cref="BigInteger"/> object and integer.
-        /// </summary>
-        /// <param name="right"></param>
-        /// <returns></returns>
-        public BigInteger Multiply(BigInteger right) => this * right;
+
         /// <summary>
         /// Returns the right shifted <see cref="BigInteger"/> object.
         /// </summary>
