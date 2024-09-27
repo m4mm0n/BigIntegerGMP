@@ -127,7 +127,7 @@
                 var a = BigInteger.Random(1, value - 1);
                 if (BigInteger.GreatestCommonDivisor(a, value) > BigInteger.One)
                     return false;
-                if (Jacobi(a, value) % value != BigInteger.PowMod(a, (value - 1) / 2, value))
+                if (FindJacobiSymbol(a, value) % value != BigInteger.PowMod(a, (value - 1) / 2, value))
                     return false;
             }
             return true;
