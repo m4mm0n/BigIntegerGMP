@@ -115,6 +115,24 @@
             return true;
         }
         /// <summary>
+        /// Runs the Solovay-Strassen primality test.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="iConfidence"></param>
+        /// <returns></returns>
+        public static bool IsProbablePrimeSolovayStrassen(BigInteger value, int iConfidence = 10)
+        {
+            for (var i = 0; i < iConfidence; i++)
+            {
+                var a = BigInteger.Random(1, value - 1);
+                if (BigInteger.GreatestCommonDivisor(a, value) > BigInteger.One)
+                    return false;
+                if (Jacobi(a, value) % value != BigInteger.PowMod(a, (value - 1) / 2, value))
+                    return false;
+            }
+            return true;
+        }
+        /// <summary>
         /// Generates a random BigInteger within the specified range and using the specified Random object.
         /// </summary>
         /// <param name="min"></param>
@@ -133,6 +151,35 @@
                 result = new BigInteger(bytes);
             }while(result < min || result > max);
             return result;
+        }
+        /// <summary>
+        /// Finds the Jacobi symbol of a and n.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static BigInteger FindJacobiSymbol(BigInteger a, BigInteger n)
+        {
+            if (a == 0)
+                return n == 1 ? BigInteger.One : BigInteger.Zero;
+            if (a == -1)
+                return n % 2 == 0 ? BigInteger.One : -BigInteger.One;
+            if (a == 1)
+                return BigInteger.One;
+            if (a == 2)
+            {
+                if (n % 8 == 1 || n % 8 == 7)
+                    return BigInteger.One;
+                if (n % 8 == 3 || n % 8 == 5)
+                    return -BigInteger.One;
+            }
+            else if (a >= n)
+                return FindJacobiSymbol(a % n, n);
+            else if (a % 2 == 0)
+                return FindJacobiSymbol(2, n) * FindJacobiSymbol(a / 2, n);
+            else
+                return a % 4 == 3 && n % 4 == 3 ? -FindJacobiSymbol(n, a) : FindJacobiSymbol(n, a);
+            return BigInteger.Zero; // Fallback
         }
     }
 }

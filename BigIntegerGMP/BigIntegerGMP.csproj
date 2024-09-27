@@ -5,6 +5,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <Title>BigInteger GMP Version</Title>
+    <Copyright>https://github.com/MachineCognitis/Math.Gmp.Native and https://github.com/m4mm0n/BigIntegerGMP</Copyright>
+    <PackageProjectUrl>https://github.com/m4mm0n/BigIntegerGMP</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/m4mm0n/BigIntegerGMP</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>BigInteger;Math;BigNumber;GMP.NET;GNUMP;GMP</PackageTags>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>0.0.1</Version>
+    <Description>A pretty basic, but functional BigInteger library that uses Math.GMP.Native instead of .NET's internal numeric operations</Description>
+    <PackageReleaseNotes>First published version</PackageReleaseNotes>
+    <PackAsTool>False</PackAsTool>
   </PropertyGroup>
 
   <ItemGroup>
