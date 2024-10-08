@@ -376,6 +376,14 @@ namespace BigIntegerGMP
         public static bool operator <(int left, BigInteger? right) =>
             right is not null && mpz_cmp_si(right._value, left) > 0;
         /// <summary>
+        /// Checks if a long integer is less than a <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public static bool operator <(BigInteger? left, long right) =>
+            left is not null && mpz_cmp_ui(left._value, (uint)right) < 0;
+        /// <summary>
         /// Checks if a <see cref="BigInteger"/> object is greater than another <see cref="BigInteger"/> object.
         /// </summary>
         /// <param name="left"></param>
@@ -407,6 +415,14 @@ namespace BigIntegerGMP
         /// <returns></returns>
         public static bool operator >(BigInteger? left, double right) =>
             left is not null && mpz_cmp_d(left._value, right) > 0;
+        /// <summary>
+        /// Checks if a <see cref="BigInteger"/> object is greater than a long integer.
+        /// </summary>
+        /// <param name="left"></param>
+        /// <param name="right"></param>
+        /// <returns></returns>
+        public static bool operator >(BigInteger? left, long right) =>
+            left is not null && mpz_cmp_ui(left._value, (uint)right) > 0;
         /// <summary>
         /// Checks if a <see cref="BigInteger"/> object is less than a double.
         /// </summary>

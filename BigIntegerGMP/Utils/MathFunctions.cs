@@ -142,7 +142,6 @@
         public static BigInteger RandomBigInteger(BigInteger min, BigInteger max, Random rand)
         {
             var bytes = max.ToByteArray();
-            var value = new BigInteger(bytes);
             var result = BigInteger.Zero;
             do
             {
