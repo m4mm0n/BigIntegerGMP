@@ -180,5 +180,28 @@
                 return a % 4 == 3 && n % 4 == 3 ? -FindJacobiSymbol(n, a) : FindJacobiSymbol(n, a);
             return BigInteger.Zero; // Fallback
         }
+        /// <summary>
+        /// Finds the greatest common divisor of two BigIntegers using the Euclidean extended algorithm.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <param name="s"></param>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static BigInteger ExtendedGCD(BigInteger a, BigInteger b, out BigInteger s, out BigInteger t)
+        {
+            if (b == 0)
+            {
+                s = 1;
+                t = 0;
+                return a;
+            }
+
+            var gcd = ExtendedGCD(b, a % b, out BigInteger s1, out BigInteger t1);
+            s = t1;
+            t = s1 - (a / b) * t1;
+
+            return gcd;
+        }
     }
 }
