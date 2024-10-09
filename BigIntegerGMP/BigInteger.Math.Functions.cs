@@ -597,25 +597,6 @@ namespace BigIntegerGMP
         /// <param name="modulus"></param>
         /// <returns></returns>
         public BigInteger Modulus(BigInteger modulus) => Modulus(this, modulus);
-        public static List<List<Tuple<BigInteger, long>>> Factor(List<BigInteger> numbers)
-        {
-            var factoredResults = new List<List<Tuple<BigInteger, long>>>();
-
-            // Iterate over each BigInteger in the list
-            foreach (var number in numbers)
-            {
-                // Factor the single BigInteger using your existing single number Factor method
-                var factored = Factor(number);  // This should return List<Tuple<BigInteger, long>> for a single number
-
-                // Add the factored result to the main result list
-                factoredResults.Add(factored);
-            }
-
-            return factoredResults;
-        }
-
-
-
         /// <summary>
         /// Factorizes the specified <see cref="BigInteger"/> object.
         /// </summary>
@@ -626,7 +607,7 @@ namespace BigIntegerGMP
             var factors = new List<BigInteger>();
 
             // Step 1: Remove small factors using trial division
-            foreach (var smallPrime in SmallPrimes())
+            foreach (var smallPrime in EratosthenesPrimes())
             {
                 while (n % smallPrime == 0)
                 {
@@ -669,8 +650,13 @@ namespace BigIntegerGMP
             return d == n ? 0 : // Failure to find a factor
                 d;
         }
-
-        private static void FactorUsingPollardsRho(BigInteger n, List<BigInteger> factors)
+        /// <summary>
+        /// Factorizes the specified <see cref="BigInteger"/> object using Pollard's Rho algorithm and outputs the factors.
+        /// </summary>
+        /// <param name="n"></param>
+        /// <param name="factors"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        public static void FactorUsingPollardsRho(BigInteger n, List<BigInteger> factors)
         {
             if (n == 1) return;
 
@@ -688,10 +674,28 @@ namespace BigIntegerGMP
             FactorUsingPollardsRho(divisor, factors);
             FactorUsingPollardsRho(n / divisor, factors);
         }
-        private static IEnumerable<BigInteger> SmallPrimes()
+        /// <summary>
+        /// Generates a list of small primes using the Sieve of Eratosthenes algorithm.
+        /// </summary>
+        /// <param name="limit"></param>
+        /// <returns></returns>
+        public static IEnumerable<BigInteger> EratosthenesPrimes(int limit = 1000)
         {
-            // You can define the first small primes
-            return new List<BigInteger> { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 };
+            var sieve = new bool[limit + 1];
+            for (var i = 2; i <= limit; i++) sieve[i] = true;
+
+            for (var p = 2; p * p <= limit; p++)
+                if (sieve[p])
+                    for (var i = p * p; i <= limit; i += p)
+                        sieve[i] = false;
+
+            var primes = new List<BigInteger>();
+            for (var i = 2; i <= limit; i++)
+                if (sieve[i])
+                    primes.Add(new BigInteger(i));
+
+            return primes;
         }
+
     }
 }
