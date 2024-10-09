@@ -584,5 +584,114 @@ namespace BigIntegerGMP
         /// <param name="modulus"></param>
         /// <returns></returns>
         public BigInteger Mod(BigInteger modulus) => this % modulus;
+        /// <summary>
+        /// Returns the modulus of the <see cref="BigInteger"/> object with the specified modulus.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="modulus"></param>
+        /// <returns></returns>
+        public static BigInteger Modulus(BigInteger value, BigInteger modulus) => (value % modulus + modulus) % modulus;
+        /// <summary>
+        /// Returns the modulus of the <see cref="BigInteger"/> object with the specified modulus.
+        /// </summary>
+        /// <param name="modulus"></param>
+        /// <returns></returns>
+        public BigInteger Modulus(BigInteger modulus) => Modulus(this, modulus);
+        public static List<List<Tuple<BigInteger, long>>> Factor(List<BigInteger> numbers)
+        {
+            var factoredResults = new List<List<Tuple<BigInteger, long>>>();
+
+            // Iterate over each BigInteger in the list
+            foreach (var number in numbers)
+            {
+                // Factor the single BigInteger using your existing single number Factor method
+                var factored = Factor(number);  // This should return List<Tuple<BigInteger, long>> for a single number
+
+                // Add the factored result to the main result list
+                factoredResults.Add(factored);
+            }
+
+            return factoredResults;
+        }
+
+
+
+        /// <summary>
+        /// Factorizes the specified <see cref="BigInteger"/> object.
+        /// </summary>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static List<BigInteger> Factor(BigInteger n)
+        {
+            var factors = new List<BigInteger>();
+
+            // Step 1: Remove small factors using trial division
+            foreach (var smallPrime in SmallPrimes())
+            {
+                while (n % smallPrime == 0)
+                {
+                    factors.Add(smallPrime);
+                    n /= smallPrime;
+                }
+                if (n == 1) return factors;
+            }
+
+            // Step 2: Use Pollard's Rho for larger factors
+            if (n > 1) FactorUsingPollardsRho(n, factors);
+
+            return factors;
+        }
+        /// <summary>
+        /// Returns the prime factors of the specified <see cref="BigInteger"/> object using Pollard's Rho algorithm and a specified seed.
+        /// </summary>
+        /// <param name="n"></param>
+        /// <param name="seed"></param>
+        /// <returns></returns>
+        public static BigInteger PollardsRho(BigInteger n, BigInteger seed)
+        {
+            if (n.IsEven())
+                return 2;
+
+            var x = seed;
+            var y = seed;
+            BigInteger d = 1;
+            var one = One;
+
+            Func<BigInteger, BigInteger> f = (z) => (z * z + one) % n;
+
+            while (d == 1)
+            {
+                x = f(x); // f(x) = (x^2 + 1) % n
+                y = f(f(y)); // f(f(y)) = ((y^2 + 1)^2 + 1) % n
+                d = GreatestCommonDivisor(Abs(x - y), n);
+            }
+
+            return d == n ? 0 : // Failure to find a factor
+                d;
+        }
+
+        private static void FactorUsingPollardsRho(BigInteger n, List<BigInteger> factors)
+        {
+            if (n == 1) return;
+
+            if (IsProbablePrime(n))
+            {
+                factors.Add(n);
+                return;
+            }
+
+            var divisor = PollardsRho(n, 2);
+            if (divisor == 0) // Pollard's Rho failed
+                throw new InvalidOperationException("Failed to factor the number.");
+
+            // Recursively factor the divisor and quotient
+            FactorUsingPollardsRho(divisor, factors);
+            FactorUsingPollardsRho(n / divisor, factors);
+        }
+        private static IEnumerable<BigInteger> SmallPrimes()
+        {
+            // You can define the first small primes
+            return new List<BigInteger> { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53 };
+        }
     }
 }
