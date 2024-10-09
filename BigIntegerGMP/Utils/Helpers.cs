@@ -231,6 +231,91 @@ namespace BigIntegerGMP.Utils
 
             return -1;
         }
+        /// <summary>
+        /// Returns the absolute value of a number.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static T Abs<T>(T value) where T : IComparable<T>, IConvertible
+        {
+            if (value.CompareTo(default(T)) < 0)
+            {
+                dynamic v = value;
+                return (T)(-v);
+            }
+            return value;
+        }
+        /// <summary>
+        /// Logarithm function with a custom base.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="baseValue"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static double Log<T>(T value, double baseValue = 2.0) where T : IConvertible
+        {
+            var x = Convert.ToDouble(value);  // Convert the input to double for processing
 
+            if (x <= 0)
+                throw new ArgumentOutOfRangeException(nameof(value), "Logarithm is undefined for non-positive values.");
+
+            // Compute the natural logarithm using our custom implementation
+            var lnX = NaturalLog(x);
+
+            // Change of base formula to compute log_b(x)
+            var lnBase = NaturalLog(baseValue);
+            return lnX / lnBase;
+        }
+
+        /// <summary>
+        /// Custom natural logarithm (ln) approximation using Newton's method
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static double NaturalLog(double x)
+        {
+            if (x <= 0.0)
+                throw new ArgumentOutOfRangeException(nameof(x), "Input must be positive.");
+
+            // Tolerance-based comparison for checking if x is approximately 1.0
+            const double epsilon = 1e-10;  // You can adjust this based on precision needs
+
+            if (Abs(x - 1.0) < epsilon)
+            {
+                return 0.0;  // ln(1) is exactly 0
+            }
+
+            var result = 0.0;
+            var term = (x - 1) / (x + 1);
+            var termSquared = term * term;
+
+            for (var i = 1; i < 100; i += 2)
+            {
+                result += (1.0 / i) * term;
+                term *= termSquared;
+            }
+
+            return 2.0 * result;
+        }
+
+
+        /// <summary>
+        /// Custom exponential function (e^x) approximation using Taylor series
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        public static double Exp(double x)
+        {
+            var sum = 1.0;
+            var term = 1.0;
+            for (var i = 1; i < 50; i++)  // 50 iterations for precision
+            {
+                term *= x / i;
+                sum += term;
+            }
+            return sum;
+        }
     }
 }
